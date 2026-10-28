@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load static dm %}
+{% block title %}Лента — DateMatch{% endblock %}
+{% block bodyclass %}page-discover{% endblock %}
+{% block content %}
+<section class="discover">
+  <div class="discover-head">
+    <h1>Лента</h1>
+    <div class="toolbar">
+      <button class="link-btn danger" id="filters-reset" type="button" hidden>{% icon "x" %}Сбросить</button>
+      <button class="btn ghost sm" id="filters-btn" type="button" aria-expanded="false" aria-controls="filters">{% icon "sliders" %}Фильтры <span id="filters-count"></span></button>
+    </div>
+  </div>
+  <div class="tip" id="tip" hidden>
+    {% icon "info" %}
+    <p><strong>Как пользоваться.</strong> Нравится человек: смахните карточку вправо или нажмите на сердце. Не нравится: влево или на крестик. При взаимном лайке откроется чат.</p>
+    <button class="link-btn" id="tip-close" type="button" aria-label="Закрыть подсказку">{% icon "x" %}</button>
+  </div>
+  <form class="filters panel" id="filters" hidden novalidate>
+    <div class="grid2">
+      <div class="field"><label for="f-min">Возраст от</label><input id="f-min" type="number" min="18" max="99" placeholder="18"></div>
+      <div class="field"><label for="f-max">Возраст до</label><input id="f-max" type="number" min="18" max="99" placeholder="99"></div>
+    </div>
+    <div class="field"><span class="label">Интересы (подойдёт любой)</span><div id="f-interests" class="chips" role="group" aria-label="Интересы"></div></div>
+    <label class="check"><input id="f-video" type="checkbox"> Только с видео в анкете</label>
+    <label class="check"><input id="f-music" type="checkbox"> Только с любимой музыкой</label>
+    <p class="err" id="f-error" role="alert"></p>
+    <button class="btn wide" type="submit">Применить фильтры</button>
+  </form>
+  <div id="deck" class="deck" aria-live="polite"></div>
+  <div id="empty" class="empty" hidden>
+    <div class="empty-ic">{% icon "users" "lg" %}</div>
+    <h2>Анкеты закончились</h2>
+    <p class="muted">Загляните позже: новые люди появляются каждый день. Можно также ослабить фильтры.</p>
+    <button class="btn" id="reload" type="button">{% icon "refresh" %}Проверить ещё раз</button>
+  </div>
+  <div id="actions" class="actions" hidden>
+    <button class="act nope" id="btn-nope" type="button" aria-label="Пропустить (стрелка влево)"><span class="round">{% icon "x" "lg" %}</span>Пропустить</button>
+    <button class="act like" id="btn-like" type="button" aria-label="Нравится (стрелка вправо)"><span class="round">{% icon "heart" "lg fill" %}</span>Нравится</button>
+  </div>
+  <p class="kbd-hint" id="kbd-hint">{% icon "arrow-left" %}<span>пропустить</span><span>·</span><span>нравится</span>{% icon "arrow-right" %}</p>
+</section>
+<div class="modal" id="video-modal" hidden><button class="close" id="video-close" type="button" aria-label="Закрыть">{% icon "x" %}</button><div id="video-body"></div></div>
+<div id="match-overlay" class="match-overlay" role="dialog" aria-modal="true" aria-labelledby="match-title" hidden>
+  <div class="match-box">
+    <h2 id="match-title">Это пара!</h2>
+    <p id="match-text"></p>
+    <div class="match-photos"><img id="match-me" alt="Ваше фото"><span class="heart-between">{% icon "heart" "fill" %}</span><img id="match-them" alt="Фото пары"></div>
+    <a class="btn spark" id="match-chat" href="#">{% icon "chat" %}Написать сообщение</a>
+    <button class="btn ghost-light" id="match-close" type="button">Листать дальше</button>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script>window.ME_PHOTO = "{{ my_photo }}";</script><script src="{% static 'js/profile-form.js' %}"></script><script src="{% static 'js/discover.js' %}"></script>{% endblock %}

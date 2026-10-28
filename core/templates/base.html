@@ -1,0 +1,68 @@
+{% load static dm %}<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <meta name="theme-color" content="#6a4cff">
+  <title>{% block title %}DateMatch{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    (function () { try {
+      var t = localStorage.getItem("dm-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {} })();
+  </script>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body class="{% block bodyclass %}{% endblock %}">
+  {% include "icons.html" %}
+  <header class="topbar">
+    <a class="brand" href="{% if me %}/discover/{% else %}/{% endif %}" aria-label="DateMatch — на главную">
+      <span class="mark">{% icon "heart" "fill" %}</span><span class="word">DateMatch</span>
+    </a>
+    {% if me %}
+    <nav class="nav" aria-label="Основное меню">
+      <a href="/discover/" data-nav="discover">{% icon "layers" %}<span>Лента</span></a>
+      <a href="/matches/" data-nav="matches">{% icon "chat-heart" %}<span>Пары</span></a>
+      <a href="/profile/" data-nav="profile">{% icon "user" %}<span>Профиль</span></a>
+      {% if me.is_admin %}<a href="/panel/" data-nav="panel">{% icon "shield" %}<span>Админ</span></a>{% endif %}
+    </nav>
+    {% else %}
+    <nav class="nav guest" aria-label="Вход и регистрация">
+      <a href="/login/" data-nav="login"><span>Войти</span></a>
+      <a class="cta" href="/register/" data-nav="register"><span>Регистрация</span></a>
+    </nav>
+    {% endif %}
+    <div class="tools">
+      <button class="icon-btn" id="theme-btn" type="button" aria-label="Переключить тёмную тему" title="Тёмная / светлая тема">{% icon "moon" "when-light" %}{% icon "sun" "when-dark" %}</button>
+      {% if me %}
+      <div class="bell-wrap">
+        <button class="icon-btn" id="bell-btn" type="button" aria-label="Уведомления" title="Уведомления" aria-expanded="false" aria-controls="bell-panel">{% icon "bell" %}<span class="dot" id="bell-dot" hidden>0</span></button>
+        <div class="bell-panel" id="bell-panel" hidden>
+          <h3>Уведомления</h3>
+          <div id="bell-list"></div>
+          <div class="bell-actions">
+            <button class="link-btn" id="bell-clear" type="button">{% icon "check" %}Прочитать всё</button>
+            <button class="link-btn" id="bell-allow" type="button" hidden>{% icon "bell" %}Включить в браузере</button>
+          </div>
+        </div>
+      </div>
+      <button class="icon-btn" id="logout-btn" type="button" aria-label="Выйти" title="Выйти">{% icon "logout" %}</button>
+      {% endif %}
+    </div>
+  </header>
+  <main class="shell">{% block content %}{% endblock %}</main>
+  <div id="toasts" class="toasts" role="status" aria-live="polite"></div>
+  {% if me %}<div class="incoming" id="incoming" role="alertdialog" aria-live="assertive" hidden>
+    <img id="incoming-photo" alt=""><div class="txt"><strong id="incoming-name"></strong><br><span class="muted small" id="incoming-kind"></span></div>
+    <button class="btn sm" id="incoming-accept" type="button">{% icon "phone" %}Принять</button>
+    <button class="btn danger sm" id="incoming-decline" type="button" aria-label="Отклонить звонок">{% icon "x" %}</button>
+  </div>{% endif %}
+  <script src="{% static 'js/common.js' %}"></script>
+  {% if me %}<script src="{% static 'js/notify.js' %}"></script>{% endif %}
+  {% block scripts %}{% endblock %}
+</body>
+</html>

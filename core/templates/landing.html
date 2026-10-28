@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load dm %}
+{% block content %}
+<section class="hero">
+  <div class="hero-copy">
+    <span class="eyebrow">{% icon "sparkles" %}Знакомства без лишнего шума</span>
+    <h1>Находите людей, которым вы тоже нравитесь</h1>
+    <p class="lead">Листайте анкеты и ставьте лайки. Чат открывается только тогда, когда симпатия взаимна, поэтому писать будут те, кто вам интересен.</p>
+    <p class="row"><a class="btn" href="/register/">Создать анкету</a> <a class="btn ghost" href="/login/">У меня уже есть аккаунт</a></p>
+  </div>
+  <div class="hero-demo" aria-hidden="true">
+    <div class="demo-card back"></div>
+    <div class="demo-card front">
+      <div class="demo-photo">{% icon "user" "xl" %}</div>
+      <div class="demo-info"><strong>Мария, 27</strong><span>Кофе · Походы · Кино</span></div>
+      <span class="stamp like show">Нравится</span>
+    </div>
+  </div>
+</section>
+
+<h2 class="section-title">Как это работает</h2>
+<section class="steps">
+  <div class="step"><div class="badge-ic">{% icon "user" %}</div><h3>1. Расскажите о себе</h3><p>Добавьте фото, пару слов о себе и интересы. Можно записать короткое видео и указать любимую музыку.</p></div>
+  <div class="step"><div class="badge-ic">{% icon "layers" %}</div><h3>2. Листайте ленту</h3><p>Смахните карточку вправо, если человек нравится, и влево, если нет. Настройте фильтры по возрасту и интересам.</p></div>
+  <div class="step"><div class="badge-ic">{% icon "chat-heart" %}</div><h3>3. Общайтесь</h3><p>При взаимном лайке появляется пара и открывается чат: текст, фото, голосовые, подарки и звонки.</p></div>
+</section>
+
+<section class="perks">
+  <div class="perk"><div class="badge-ic">{% icon "eye-off" %}</div><h3>Вы решаете, кому видны</h3><p>Анкету можно скрыть из поиска в любой момент.</p></div>
+  <div class="perk"><div class="badge-ic">{% icon "video" %}</div><h3>Видео и аудио звонки</h3><p>Познакомьтесь поближе, не выходя из чата.</p></div>
+  <div class="perk"><div class="badge-ic">{% icon "gift" %}</div><h3>Виртуальные подарки</h3><p>Роза, кофе, торт — бесплатно и без лишних шагов.</p></div>
+  <div class="perk"><div class="badge-ic">{% icon "moon" %}</div><h3>Светлая и тёмная тема</h3><p>Удобно и днём, и поздним вечером.</p></div>
+</section>
+
+<section class="cta-band">
+  <h2>Готовы встретить кого-то интересного?</h2>
+  <a class="btn" href="/register/">Создать анкету за минуту</a>
+</section>
+{% endblock %}

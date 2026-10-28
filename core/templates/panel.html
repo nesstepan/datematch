@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load static dm %}
+{% block title %}Админ-панель — DateMatch{% endblock %}
+{% block content %}
+<section>
+  <div class="page-head"><h1>Админ-панель</h1><p>Статистика, справочник интересов и управление пользователями.</p></div>
+  <div id="stats" class="stats"></div>
+
+  <div class="panel">
+    <h2>{% icon "sparkles" %} Интересы</h2>
+    <p class="muted">Этот список пользователи видят при регистрации и в профиле. Нажмите на интерес, чтобы удалить его.</p>
+    <form id="interest-form" class="inline-form" novalidate>
+      <label class="sr" for="interest-name">Новый интерес</label>
+      <input id="interest-name" maxlength="30" placeholder="Например, Настолки" required>
+      <button class="btn" type="submit">{% icon "plus" %}Добавить</button>
+    </form>
+    <p class="err" id="interest-error" role="alert"></p>
+    <div id="interest-list" class="chips"></div>
+  </div>
+
+  <div class="panel">
+    <h2>{% icon "users" %} Пользователи</h2>
+    <label class="sr" for="user-filter">Поиск</label>
+    <input id="user-filter" class="search" placeholder="Поиск по имени или email">
+    <div class="table-wrap">
+      <table class="table"><thead><tr><th>Имя</th><th>Email</th><th>Возраст</th><th>Статус</th><th></th></tr></thead>
+        <tbody id="user-rows"></tbody></table>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/panel.js' %}"></script>{% endblock %}

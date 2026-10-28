@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static dm %}
+{% block title %}Чат — DateMatch{% endblock %}
+{% block bodyclass %}page-chat{% endblock %}
+{% block content %}
+{% if missing %}
+<section class="narrow empty"><div class="empty-ic">{% icon "user-x" "lg" %}</div><h2>Эта пара больше не существует</h2>
+  <p class="muted">Возможно, собеседник удалил анкету или разорвал пару.</p>
+  <a class="btn" href="/matches/">К списку пар</a></section>
+{% else %}
+<section class="chat" data-match="{{ match_id }}" data-other="{{ other.name }}" data-photo="{{ other.photo_url }}">
+  <header class="chat-head">
+    <a class="icon-btn" href="/matches/" aria-label="К списку пар" title="К списку пар">{% icon "chevron-left" "lg" %}</a>
+    <img class="avatar" src="{{ other.photo_url }}" alt="">
+    <div class="chat-who"><strong>{{ other.name }}, {{ other.age }}{% for b in other.badges|slice:":4" %}<span class="tiny-badge" title="{{ b.title }}">{% icon b.icon %}</span>{% endfor %}</strong>
+      <span class="muted small">{% if other.music_title %}{% icon "music" %} {{ other.music_title }}{% else %}{{ other.interests|join:", " }}{% endif %}</span></div>
+    <button class="icon-btn" id="call-audio" type="button" aria-label="Аудиозвонок" title="Аудиозвонок">{% icon "phone" %}</button>
+    <button class="icon-btn" id="call-video" type="button" aria-label="Видеозвонок" title="Видеозвонок">{% icon "video" %}</button>
+    <button class="link-btn danger" id="unmatch" type="button" title="Разорвать пару">{% icon "user-x" %}<span class="hide-sm">Разорвать пару</span></button>
+  </header>
+  <div id="messages" class="messages" aria-live="polite"></div>
+  <div class="gift-panel" id="gift-panel" hidden></div>
+  <form id="send-form" class="composer" autocomplete="off">
+    <label class="sr" for="text">Сообщение</label>
+    <button class="icon-btn" id="attach-btn" type="button" aria-label="Прикрепить фото, видео или GIF" title="Фото, видео, GIF">{% icon "paperclip" %}</button>
+    <input id="file" type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" hidden>
+    <button class="icon-btn" id="gift-btn" type="button" aria-label="Подарок" title="Виртуальный подарок">{% icon "gift" %}</button>
+    <input id="text" name="text" maxlength="1000" placeholder="Сообщение" required>
+    <div class="rec-info" id="rec-info"><span class="rec-dot"></span><span id="rec-time">0:00</span>
+      <button class="link-btn" id="rec-cancel" type="button">Отмена</button></div>
+    <button class="icon-btn" id="mic-btn" type="button" aria-label="Голосовое сообщение" title="Записать голосовое (нажмите ещё раз, чтобы отправить)">{% icon "mic" "when-idle" %}{% icon "stop" "when-rec" %}</button>
+    <button class="btn send" type="submit" id="send-btn" aria-label="Отправить" title="Отправить">{% icon "send" %}</button>
+  </form>
+</section>
+<div class="modal" id="viewer" hidden><button class="close" id="viewer-close" type="button" aria-label="Закрыть">{% icon "x" %}</button><div id="viewer-body"></div></div>
+<div class="call" id="call" hidden>
+  <video class="remote" id="remote-video" autoplay playsinline></video>
+  <video class="local" id="local-video" autoplay playsinline muted></video>
+  <div class="who"><span id="call-who"></span><small id="call-state"></small></div>
+  <div class="bar">
+    <button id="call-mute" type="button" aria-label="Микрофон вкл/выкл" title="Микрофон">{% icon "mic" "when-on" %}{% icon "mic-off" "when-off" %}</button>
+    <button id="call-cam" type="button" aria-label="Камера вкл/выкл" title="Камера">{% icon "video" "when-on" %}{% icon "video-off" "when-off" %}</button>
+    <button class="ok" id="call-accept" type="button" aria-label="Принять звонок" title="Принять" hidden>{% icon "phone" %}</button>
+    <button class="end" id="call-end" type="button" aria-label="Завершить звонок" title="Завершить">{% icon "phone-off" %}</button>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}{% if not missing %}<script src="{% static 'js/calls.js' %}"></script><script src="{% static 'js/chat.js' %}"></script>{% endif %}{% endblock %}

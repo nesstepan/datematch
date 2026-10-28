@@ -1,0 +1,43 @@
+from django.urls import path
+
+from . import api, pages
+
+urlpatterns = [
+    # страницы
+    path("", pages.landing, name="landing"),
+    path("register/", pages.register_page),
+    path("login/", pages.login_page),
+    path("discover/", pages.discover_page),
+    path("matches/", pages.matches_page),
+    path("chat/<str:match_id>/", pages.chat_page),
+    path("profile/", pages.profile_page),
+    path("panel/", pages.panel_page),
+    path("healthz", api.health),
+    path("photo/<str:uid>/", api.photo),
+    path("media/<str:media_id>/", api.media_file),
+    # API
+    path("api/auth/register/", api.register),
+    path("api/auth/login/", api.login),
+    path("api/auth/logout/", api.logout),
+    path("api/interests/", api.interests),
+    path("api/me/", api.me),
+    path("api/me/settings/", api.me_settings),
+    path("api/me/video/", api.me_video),
+    path("api/achievements/", api.achievements),
+    path("api/gifts/", api.gifts),
+    path("api/ice/", api.ice_servers),
+    path("api/notifications/", api.notifications),
+    path("api/notifications/read/", api.notifications_read),
+    path("api/feed/", api.feed),
+    path("api/swipes/", api.swipes),
+    path("api/matches/", api.matches),
+    path("api/matches/<str:match_id>/", api.match_detail),
+    path("api/matches/<str:match_id>/messages/", api.messages),
+    path("api/matches/<str:match_id>/messages/<str:message_id>/", api.message_detail),
+    path("api/matches/<str:match_id>/signals/", api.signals),
+    path("api/admin/stats/", api.admin_stats),
+    path("api/admin/users/", api.admin_users),
+    path("api/admin/users/<str:uid>/", api.admin_user),
+    path("api/admin/interests/", api.admin_interests),
+    path("api/admin/interests/<str:iid>/", api.admin_interest),
+]

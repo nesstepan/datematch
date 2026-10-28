@@ -1,0 +1,11 @@
+{% load static dm %}<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ status }} — DateMatch</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600&family=Montserrat:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/app.css' %}"></head>
+<body>{% include "icons.html" %}<main class="shell narrow center-page">
+  <p class="big-code">{{ status }}</p>
+  <h1>{{ title }}</h1>
+  <p class="muted">{{ text }}</p>
+  <p><a class="btn" href="/">{% icon "arrow-left" %}На главную</a></p>
+</main></body></html>

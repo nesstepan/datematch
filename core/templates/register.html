@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load dm %}
+{% block title %}Регистрация — DateMatch{% endblock %}
+{% block content %}
+<section class="narrow">
+  <div class="panel">
+    <div class="page-head"><h1>Создайте анкету</h1><p>Займёт около минуты. Email видите только вы.</p></div>
+    <form id="reg-form" class="form" novalidate enctype="multipart/form-data">
+      <div class="form-section">
+        <h2><span class="step-no">1</span>Аккаунт</h2>
+        <div class="field"><label for="email">Email</label>
+          <input id="email" name="email" type="email" autocomplete="email" maxlength="254" placeholder="name@example.com" required>
+          <p class="err" data-err="email"></p></div>
+        <div class="grid2">
+          <div class="field"><label for="password">Пароль</label>
+            <input id="password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required>
+            <p class="hint">От 8 символов, буквы и цифры</p><p class="err" data-err="password"></p></div>
+          <div class="field"><label for="password2">Повторите пароль</label>
+            <input id="password2" type="password" autocomplete="new-password" required>
+            <p class="err" data-err="password2"></p></div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h2><span class="step-no">2</span>О вас</h2>
+        <div class="grid2">
+          <div class="field"><label for="name">Имя</label>
+            <input id="name" name="name" autocomplete="given-name" minlength="2" maxlength="50" required>
+            <p class="err" data-err="name"></p></div>
+          <div class="field"><label for="age">Возраст</label>
+            <input id="age" name="age" type="number" inputmode="numeric" min="18" max="99" required>
+            <p class="err" data-err="age"></p></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label for="gender">Я</label>
+            <select id="gender" name="gender" required>
+              <option value="">Выберите</option><option value="male">Мужчина</option>
+              <option value="female">Женщина</option><option value="other">Другое</option></select>
+            <p class="err" data-err="gender"></p></div>
+          <div class="field"><label for="looking_for">Ищу</label>
+            <select id="looking_for" name="looking_for" required>
+              <option value="">Выберите</option><option value="male">Мужчин</option>
+              <option value="female">Женщин</option><option value="everyone">Всех</option></select>
+            <p class="err" data-err="looking_for"></p></div>
+        </div>
+        <div class="field"><label for="bio">О себе</label>
+          <textarea id="bio" name="bio" rows="3" maxlength="500" placeholder="Чем увлекаетесь, что ищете, чем любите заниматься по выходным"></textarea>
+          <p class="hint"><span id="bio-count">0</span> из 500</p><p class="err" data-err="bio"></p></div>
+      </div>
+
+      <div class="form-section">
+        <h2><span class="step-no">3</span>Фото и интересы</h2>
+        <div class="field"><label for="photo">Главное фото</label>
+          <div class="photo-pick"><img id="photo-preview" alt="" hidden><span class="photo-ph" id="photo-ph">{% icon "camera" "lg" %}</span>
+            <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" required></div>
+          <p class="hint">JPG, PNG или WEBP до 5 МБ. Лучше фото, где хорошо видно лицо.</p><p class="err" data-err="photo"></p></div>
+        <div class="field"><span class="label">Интересы (до 8)</span>
+          <div id="interests" class="chips" role="group" aria-label="Интересы"></div>
+          <p class="err" data-err="interests"></p></div>
+      </div>
+
+      <p class="err form-err" id="form-error" role="alert"></p>
+      <button class="btn wide" type="submit" id="submit-btn">Зарегистрироваться</button>
+      <p class="muted center">Уже есть аккаунт? <a href="/login/">Войти</a></p>
+    </form>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}{% load static %}<script src="{% static 'js/profile-form.js' %}"></script><script src="{% static 'js/register.js' %}"></script>{% endblock %}

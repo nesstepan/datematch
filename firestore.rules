@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // К базе обращается только наш сервер через Admin SDK (он обходит правила).
+    // Прямой доступ из браузера закрыт полностью.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
