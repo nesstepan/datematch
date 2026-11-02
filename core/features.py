@@ -85,7 +85,8 @@ def list_notifications(uid):
     items.sort(key=lambda n: n["created_at"], reverse=True)
     return [{"id": n["id"], "type": n["type"], "text": n["text"], "from_name": n.get("from_name", ""),
              "photo_url": n.get("from_photo", ""), "match_id": n.get("match_id", ""),
-             "data": n.get("data", {}), "created_at": n["created_at"]} for n in items[:50]]
+             "data": n.get("data", {}), "created_at": n["created_at"],
+             "delivered": bool(n.get("delivered"))} for n in items[:50]]
 
 
 def mark_read(uid, ids=None, match_id=None, types=None):

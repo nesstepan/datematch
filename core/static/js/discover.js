@@ -6,7 +6,17 @@
   const THRESHOLD = 100;
   const fbox = document.getElementById("filters"), fbtn = document.getElementById("filters-btn");
   const freset = document.getElementById("filters-reset"), fcount = document.getElementById("filters-count");
-  const chosenBox = document.getElementById("f-interests");
+  const chosenBox = document.getElementById("f-interests"), goalBox = document.getElementById("f-goals");
+  const GOALS = [["relationship", "Серьёзные отношения"], ["dating", "Свидания"], ["friends", "Дружба"], ["chat", "Общение"], ["unsure", "Пока не знаю"]];
+  function renderGoals(selected) {
+    const chosen = new Set(selected || []); goalBox.textContent = "";
+    GOALS.forEach(([id, title]) => {
+      const b = DM.el("button", "chip", title); b.type = "button"; b.setAttribute("aria-pressed", chosen.has(id));
+      b.addEventListener("click", () => { chosen.has(id) ? chosen.delete(id) : chosen.add(id); b.setAttribute("aria-pressed", chosen.has(id)); });
+      goalBox.appendChild(b);
+    });
+    goalBox.getChosen = () => [...chosen];
+  }
   const vmodal = document.getElementById("video-modal"), vbody = document.getElementById("video-body");
   let filters = {};
   try { filters = JSON.parse(localStorage.getItem("dm-filters") || "{}") || {}; } catch (e) { filters = {}; }
@@ -27,12 +37,15 @@
     const card = DM.el("article", "card");
     card._profile = p;
     if (p.accent) card.style.setProperty("--accent", p.accent);
+    const frame = DM.el("div", "tarot-frame");
     const img = DM.el("img", "cover"); img.src = p.photo_url; img.alt = "Фото: " + p.name; img.draggable = false;
+    frame.append(img, DM.el("span", "tarot-num", DM.roman(p.age)));
     const info = DM.el("div", "info");
-    info.appendChild(DM.el("h2", "", p.name + ", " + p.age));
     if (p.status) info.appendChild(DM.el("p", "status", p.status));
     if (p.bio) info.appendChild(DM.el("p", "", p.bio));
     const extras = DM.el("div", "extras");
+    const age = DM.el("span", "", DM.ageText(p.age)); extras.appendChild(age);
+    if (p.goal_title) { const g = DM.el("span"); g.appendChild(DM.icon("target")); g.appendChild(document.createTextNode(p.goal_title)); extras.appendChild(g); }
     if (p.video_url) {
       const b = DM.el("button", "video"); b.type = "button"; b.appendChild(DM.icon("play", "fill")); b.appendChild(document.createTextNode("Видео"));
       b.addEventListener("click", () => playVideo(p.video_url)); extras.appendChild(b);
@@ -44,17 +57,25 @@
       if (href) { m.href = href; m.target = "_blank"; m.rel = "noopener noreferrer nofollow"; }
       extras.appendChild(m);
     }
-    if (extras.children.length) info.appendChild(extras);
+    info.appendChild(extras);
     const tags = DM.el("div", "tags");
     p.interests.slice(0, 6).forEach(t => tags.appendChild(DM.el("span", "", t)));
     info.appendChild(tags);
+    frame.appendChild(info);
+    const title = DM.el("div", "tarot-title");
+    title.append(DM.art("star"), DM.el("h2", "", p.name), DM.art("star"));
+    frame.appendChild(title);
     const like = DM.el("span", "stamp like", "Нравится"), nope = DM.el("span", "stamp nope", "Пропуск");
-    card.append(img, info, like, nope);
+    frame.append(like, nope);
     if (p.badges && p.badges.length) {
       const bd = DM.el("div", "badges");
-      p.badges.slice(0, 4).forEach(b => { const s = DM.el("span"); s.appendChild(DM.icon(b.icon)); s.title = b.title; bd.appendChild(s); });
-      card.appendChild(bd);
+      p.badges.slice(0, 4).forEach(b => { const x = DM.el("span"); x.appendChild(DM.icon(b.icon)); x.title = b.title; bd.appendChild(x); });
+      frame.appendChild(bd);
     }
+    if (p.online) {
+      const pr = DM.el("span", "presence-tag"); pr.appendChild(DM.el("span", "online-dot")); pr.appendChild(document.createTextNode("в сети")); frame.appendChild(pr);
+    }
+    card.appendChild(frame);
     card._like = like; card._nope = nope;
     return card;
   }
@@ -165,12 +186,13 @@
     if (filters.age_min) q.push("age_min=" + filters.age_min);
     if (filters.age_max) q.push("age_max=" + filters.age_max);
     if (filters.interests && filters.interests.length) q.push("interests=" + encodeURIComponent(filters.interests.join(",")));
+    if (filters.goals && filters.goals.length) q.push("goals=" + encodeURIComponent(filters.goals.join(",")));
     if (filters.with_video) q.push("with_video=1");
     if (filters.with_music) q.push("with_music=1");
     return q.length ? "&" + q.join("&") : "";
   }
   function filterSummary() {
-    const n = ["age_min", "age_max", "with_video", "with_music"].filter(k => filters[k]).length + ((filters.interests || []).length ? 1 : 0);
+    const n = ["age_min", "age_max", "with_video", "with_music"].filter(k => filters[k]).length + ((filters.interests || []).length ? 1 : 0) + ((filters.goals || []).length ? 1 : 0);
     fcount.textContent = n ? "(" + n + ")" : ""; freset.hidden = !n;
   }
   function restart() {
@@ -186,7 +208,7 @@
       : (min && max && min > max) ? "Минимальный возраст больше максимального" : "";
     document.getElementById("f-error").textContent = err;
     if (err) return;
-    filters = { age_min: min || 0, age_max: max || 0, interests: chosenBox.getChosen ? chosenBox.getChosen() : [],
+    filters = { age_min: min || 0, age_max: max || 0, interests: chosenBox.getChosen ? chosenBox.getChosen() : [], goals: goalBox.getChosen ? goalBox.getChosen() : [],
       with_video: document.getElementById("f-video").checked, with_music: document.getElementById("f-music").checked };
     saveFilters(); filterSummary(); fbox.hidden = true; fbtn.setAttribute("aria-expanded", "false"); restart();
   });
@@ -195,6 +217,7 @@
   });
   async function fillFilterForm() {
     document.getElementById("f-min").value = filters.age_min || ""; document.getElementById("f-max").value = filters.age_max || "";
+    renderGoals(filters.goals || []);
     document.getElementById("f-video").checked = !!filters.with_video; document.getElementById("f-music").checked = !!filters.with_music;
     try { await window.ProfileForm.renderInterests(chosenBox, filters.interests || []); } catch (e) { /* список подгрузится позже */ }
   }

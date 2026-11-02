@@ -3,10 +3,11 @@
 {% block title %}Профиль — DateMatch{% endblock %}
 {% block content %}
 <section class="narrow">
-  <div class="page-head"><h1>Личный кабинет</h1><p id="who">{{ me.email }}</p></div>
+  <div class="page-head"><h1>Личный <em>кабинет</em></h1><p id="who">{{ me.email }}</p>
+    <p class="row" style="margin-top:12px"><a class="btn ghost sm" href="/u/{{ me.id }}/">{% icon "user" %}Моя страница и посты</a></p></div>
   <nav class="subnav" aria-label="Разделы профиля">
     <a href="#basic">Основное</a><a href="#video-section">Видео</a><a href="#style">Оформление</a>
-    <a href="#privacy">Приватность</a><a href="#achievements">Достижения</a><a href="#danger">Удаление</a>
+    <a href="#privacy">Приватность</a><a href="#blacklist">Чёрный список</a><a href="#achievements">Достижения</a><a href="#danger">Удаление</a>
   </nav>
 
   <div class="section" id="basic"><form id="profile-form" class="panel form" novalidate enctype="multipart/form-data">
@@ -32,6 +33,10 @@
           <option value="female">Женщин</option><option value="everyone">Всех</option></select>
         <p class="err" data-err="looking_for"></p></div>
     </div>
+    <div class="field"><label for="goal">Что вы ищете</label>
+      <select id="goal" name="goal"><option value="unsure">Пока не знаю</option><option value="relationship">Серьёзные отношения</option>
+        <option value="dating">Свидания</option><option value="friends">Дружба</option><option value="chat">Общение</option></select>
+      <p class="err" data-err="goal"></p></div>
     <div class="field"><label for="bio">О себе</label>
       <textarea id="bio" name="bio" rows="3" maxlength="500"></textarea>
       <p class="hint"><span id="bio-count">0</span> из 500</p><p class="err" data-err="bio"></p></div>
@@ -74,7 +79,16 @@
   <div class="section" id="privacy"><div class="panel">
     <h2>{% icon "eye-off" %} Приватность</h2>
     <label class="check"><input id="hidden" type="checkbox"> Скрыть мою анкету из поиска</label>
-    <p class="hint">Новые люди перестанут видеть вас в ленте. Уже созданные пары и чаты останутся.</p>
+    <p class="hint">Новые люди перестанут видеть вас в ленте и поиске. Уже созданные пары и чаты останутся.</p>
+    <label class="check"><input id="hide-online" type="checkbox"> Не показывать, что я в сети</label>
+    <p class="hint">Другие увидят вас как «не в сети», а время последнего визита не покажется.</p>
+  </div></div>
+
+  <div class="section" id="blacklist"><div class="panel">
+    <h2>{% icon "ban" %} Чёрный список</h2>
+    <p class="section-lead">Заблокированные люди не видят вас в ленте и поиске и не могут вам писать. Пара с ними удаляется.</p>
+    <div class="blocked-list" id="blocked-list"></div>
+    <p class="muted small" id="blocked-empty" hidden>Список пуст.</p>
   </div></div>
 
   <div class="section" id="achievements"><div class="panel">

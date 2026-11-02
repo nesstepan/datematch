@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load static dm %}
+{% block title %}Поиск — DateMatch{% endblock %}
+{% block content %}
+<section>
+  <div class="page-head"><h1>Поиск <em>людей</em></h1><p>Ищите по имени или интересу. Скрытые анкеты и люди из чёрного списка не показываются.</p></div>
+  <form id="search-form" novalidate>
+    <div class="search-bar">
+      <div class="search-wrap">{% icon "search" %}<label class="sr" for="q">Имя или интерес</label><input id="q" type="search" maxlength="50" placeholder="Имя или интерес, например «кофе»"></div>
+      <button class="btn" type="submit">Найти</button>
+    </div>
+    <div class="search-filters">
+      <div class="field"><label for="s-min">Возраст от</label><input id="s-min" type="number" min="18" max="99" placeholder="18"></div>
+      <div class="field"><label for="s-max">Возраст до</label><input id="s-max" type="number" min="18" max="99" placeholder="99"></div>
+      <div class="field"><label for="s-goal">Что ищут</label>
+        <select id="s-goal"><option value="">Любая цель</option><option value="relationship">Серьёзные отношения</option><option value="dating">Свидания</option>
+          <option value="friends">Дружба</option><option value="chat">Общение</option><option value="unsure">Пока не знаю</option></select></div>
+    </div>
+    <p class="err" id="s-error" role="alert"></p>
+  </form>
+  <div id="list" class="person-grid" aria-live="polite"></div>
+  <div id="empty" class="empty" hidden>{% art "cupid" "empty-art" %}<h2>Никого не нашли</h2><p class="muted">Попробуйте другое имя или ослабьте фильтры.</p></div>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/people.js' %}"></script><script src="{% static 'js/search.js' %}"></script>{% endblock %}

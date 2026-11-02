@@ -95,6 +95,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # ---- Firebase ---------------------------------------------------------
 # USE_MEMORY_DB=1 — хранить данные в памяти процесса (локальная разработка и тесты)
 USE_MEMORY_DB = env_bool("USE_MEMORY_DB", False)
+# Звонки (WebRTC) выключены: без TURN-сервера они не соединяют людей из разных сетей. Включить: CALLS_ENABLED=1 + TURN_*
+CALLS_ENABLED = env_bool("CALLS_ENABLED", False)
 FIREBASE_CREDENTIALS_JSON = os.environ.get("FIREBASE_CREDENTIALS_JSON", "")
 FIREBASE_CREDENTIALS_FILE = os.environ.get("FIREBASE_CREDENTIALS_FILE", "")
 

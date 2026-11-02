@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load static dm %}
+{% block title %}Симпатии — DateMatch{% endblock %}
+{% block content %}
+<section>
+  <div class="page-head"><h1>Кто вас <em>лайкнул</em></h1><p>Эти люди уже поставили вам лайк. Ответьте тем же, и сразу появится пара.</p></div>
+  <div id="list" class="person-grid" aria-live="polite"></div>
+  <div id="empty" class="empty" hidden>
+    {% art "cupid" "empty-art" %}
+    <h2>Пока никто не лайкнул</h2>
+    <p class="muted">Заполненная анкета с видео и интересами получает больше лайков. Загляните в ленту: возможно, вам кто-то понравится первым.</p>
+    <a class="btn" href="/discover/">Открыть ленту</a>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/people.js' %}"></script><script src="{% static 'js/likes.js' %}"></script>{% endblock %}

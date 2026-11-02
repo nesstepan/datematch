@@ -1,4 +1,5 @@
 """HTML-страницы. Данные на них подгружаются через JSON API (static/js)."""
+from django.conf import settings
 from django.http import HttpResponseForbidden
 from django.shortcuts import redirect, render
 
@@ -32,6 +33,7 @@ def _page(template, auth=True, admin=False):
                 return render(request, "error.html", {"status": 403, "title": "Нет доступа",
                               "text": "Админ-панель доступна только администраторам."}, status=403)
             ctx = {"me": user, "my_photo": services.photo_url(user) if user else "",
+                   "calls_enabled": settings.CALLS_ENABLED,
                    **(fn(request, user, *args, **kwargs) or {})}
             return render(request, template, ctx)
         return view
@@ -66,6 +68,21 @@ def matches_page(request, user):
 @_page("profile.html")
 def profile_page(request, user):
     return {}
+
+
+@_page("likes.html")
+def likes_page(request, user):
+    return {}
+
+
+@_page("search.html")
+def search_page(request, user):
+    return {}
+
+
+@_page("user.html")
+def user_page(request, user, uid):
+    return {"target_uid": uid, "is_me": uid == user["id"]}
 
 
 @_page("panel.html", admin=True)

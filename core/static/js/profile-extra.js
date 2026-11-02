@@ -76,4 +76,32 @@
       DM.toast(hidden.checked ? "Вас не видно в поиске" : "Вы снова в поиске");
     } catch (e) { hidden.checked = !hidden.checked; DM.toast(e.message, "error"); }
   });
+
+  /* скрыть статус «в сети» */
+  const hideOnline = $("hide-online");
+  DM.api("/api/me/").then(({ user }) => { hideOnline.checked = !!user.hide_online; }).catch(() => { /* форма профиля уже показала ошибку */ });
+  hideOnline.addEventListener("change", async () => {
+    try {
+      await DM.api("/api/me/settings/", { method: "POST", json: { hide_online: hideOnline.checked } });
+      DM.toast(hideOnline.checked ? "Статус «в сети» скрыт" : "Статус «в сети» снова виден");
+    } catch (e) { hideOnline.checked = !hideOnline.checked; DM.toast(e.message, "error"); }
+  });
+
+  /* чёрный список */
+  const bl = $("blocked-list"), blEmpty = $("blocked-empty");
+  function drawBlocked(items) {
+    bl.textContent = ""; blEmpty.hidden = items.length > 0;
+    items.forEach(b => {
+      const row = DM.el("div", "blocked-item");
+      const img = DM.el("img", "avatar"); img.src = b.photo_url; img.alt = ""; img.style.width = img.style.height = "40px";
+      const un = DM.el("button", "btn ghost sm", "Разблокировать"); un.type = "button";
+      un.addEventListener("click", async () => {
+        un.disabled = true;
+        try { drawBlocked((await DM.api("/api/blocks/" + b.uid + "/", { method: "DELETE" })).blocked); DM.toast("«" + b.name + "» убран из чёрного списка"); }
+        catch (e) { DM.toast(e.message, "error"); un.disabled = false; }
+      });
+      row.append(img, DM.el("strong", "", b.name), un); bl.appendChild(row);
+    });
+  }
+  DM.api("/api/blocks/").then(r => drawBlocked(r.blocked)).catch(e => DM.toast(e.message, "error"));
 })();

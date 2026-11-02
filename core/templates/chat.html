@@ -4,19 +4,26 @@
 {% block bodyclass %}page-chat{% endblock %}
 {% block content %}
 {% if missing %}
-<section class="narrow empty"><div class="empty-ic">{% icon "user-x" "lg" %}</div><h2>Эта пара больше не существует</h2>
+<section class="narrow empty">{% art "cupid" "empty-art" %}<h2>Эта пара больше не существует</h2>
   <p class="muted">Возможно, собеседник удалил анкету или разорвал пару.</p>
   <a class="btn" href="/matches/">К списку пар</a></section>
 {% else %}
-<section class="chat" data-match="{{ match_id }}" data-other="{{ other.name }}" data-photo="{{ other.photo_url }}">
+<section class="chat" data-match="{{ match_id }}" data-other="{{ other.name }}" data-other-uid="{{ other.uid }}" data-photo="{{ other.photo_url }}">
   <header class="chat-head">
     <a class="icon-btn" href="/matches/" aria-label="К списку пар" title="К списку пар">{% icon "chevron-left" "lg" %}</a>
     <img class="avatar" src="{{ other.photo_url }}" alt="">
-    <div class="chat-who"><strong>{{ other.name }}, {{ other.age }}{% for b in other.badges|slice:":4" %}<span class="tiny-badge" title="{{ b.title }}">{% icon b.icon %}</span>{% endfor %}</strong>
-      <span class="muted small">{% if other.music_title %}{% icon "music" %} {{ other.music_title }}{% else %}{{ other.interests|join:", " }}{% endif %}</span></div>
-    <button class="icon-btn" id="call-audio" type="button" aria-label="Аудиозвонок" title="Аудиозвонок">{% icon "phone" %}</button>
-    <button class="icon-btn" id="call-video" type="button" aria-label="Видеозвонок" title="Видеозвонок">{% icon "video" %}</button>
-    <button class="link-btn danger" id="unmatch" type="button" title="Разорвать пару">{% icon "user-x" %}<span class="hide-sm">Разорвать пару</span></button>
+    <a class="chat-who" href="/u/{{ other.uid }}/" title="Открыть страницу {{ other.name }}"><strong>{{ other.name }}, {{ other.age }}{% for b in other.badges|slice:":4" %}<span class="tiny-badge" title="{{ b.title }}">{% icon b.icon %}</span>{% endfor %}</strong>
+      <span class="muted small" id="chat-presence">{% if other.music_title %}{% icon "music" %} {{ other.music_title }}{% else %}{{ other.goal_title }}{% endif %}</span></a>
+    {% if calls_enabled %}<button class="icon-btn" id="call-audio" type="button" aria-label="Аудиозвонок" title="Аудиозвонок">{% icon "phone" %}</button>
+    <button class="icon-btn" id="call-video" type="button" aria-label="Видеозвонок" title="Видеозвонок">{% icon "video" %}</button>{% endif %}
+    <div class="menu-wrap">
+      <button class="icon-btn" id="menu-btn" type="button" aria-label="Ещё" title="Ещё" aria-expanded="false">{% icon "more" %}</button>
+      <div class="menu-pop" id="menu-pop" hidden>
+        <button class="link-btn" id="chat-report" type="button">{% icon "flag" %}Пожаловаться</button>
+        <button class="link-btn danger" id="chat-block" type="button">{% icon "ban" %}В чёрный список</button>
+        <button class="link-btn danger" id="unmatch" type="button">{% icon "user-x" %}Разорвать пару</button>
+      </div>
+    </div>
   </header>
   <div id="messages" class="messages" aria-live="polite"></div>
   <div class="gift-panel" id="gift-panel" hidden></div>
@@ -33,7 +40,7 @@
   </form>
 </section>
 <div class="modal" id="viewer" hidden><button class="close" id="viewer-close" type="button" aria-label="Закрыть">{% icon "x" %}</button><div id="viewer-body"></div></div>
-<div class="call" id="call" hidden>
+{% if calls_enabled %}<div class="call" id="call" hidden>
   <video class="remote" id="remote-video" autoplay playsinline></video>
   <video class="local" id="local-video" autoplay playsinline muted></video>
   <div class="who"><span id="call-who"></span><small id="call-state"></small></div>
@@ -43,7 +50,7 @@
     <button class="ok" id="call-accept" type="button" aria-label="Принять звонок" title="Принять" hidden>{% icon "phone" %}</button>
     <button class="end" id="call-end" type="button" aria-label="Завершить звонок" title="Завершить">{% icon "phone-off" %}</button>
   </div>
-</div>
+</div>{% endif %}
 {% endif %}
 {% endblock %}
-{% block scripts %}{% if not missing %}<script src="{% static 'js/calls.js' %}"></script><script src="{% static 'js/chat.js' %}"></script>{% endif %}{% endblock %}
+{% block scripts %}{% if not missing %}{% if calls_enabled %}<script src="{% static 'js/calls.js' %}"></script>{% endif %}<script src="{% static 'js/chat.js' %}"></script>{% endif %}{% endblock %}

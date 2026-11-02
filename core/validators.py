@@ -7,6 +7,12 @@ from .exceptions import ApiError
 
 GENDERS = ("male", "female", "other")
 LOOKING_FOR = ("male", "female", "everyone")
+GOALS = (("relationship", "Серьёзные отношения"), ("dating", "Свидания"), ("friends", "Дружба"),
+         ("chat", "Общение"), ("unsure", "Пока не знаю"))
+GOAL_IDS = tuple(g[0] for g in GOALS)
+GOAL_TITLES = dict(GOALS)
+REPORT_REASONS = {"spam": "Спам или реклама", "fake": "Фейковая анкета", "abuse": "Оскорбления или угрозы",
+                  "inappropriate": "Неприемлемый контент", "underage": "Похоже, нет 18 лет", "other": "Другое"}
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
 NAME_RE = re.compile(r"^[\w\s'.\-]+$", re.UNICODE)
 INTEREST_RE = re.compile(r"^[\w\s'.\-+#]+$", re.UNICODE)
@@ -128,6 +134,7 @@ def validate_profile(form, allowed_interests):
         "looking_for": _run(errors, "looking_for", _choice, form.get("looking_for"), LOOKING_FOR,
                             "Укажите, кого вы ищете"),
         "bio": _run(errors, "bio", clean_bio, form.get("bio")),
+        "goal": _run(errors, "goal", clean_goal, form.get("goal")),
         "interests": _run(errors, "interests", clean_interests, form.get("interests"), allowed_interests),
     }
     _finish(errors)
@@ -218,6 +225,11 @@ def validate_settings(body):
             data["hidden"] = body["hidden"]
         else:
             errors["hidden"] = "Нужно значение true или false"
+    if "hide_online" in body:
+        if isinstance(body["hide_online"], bool):
+            data["hide_online"] = body["hide_online"]
+        else:
+            errors["hide_online"] = "Нужно значение true или false"
     for key, fn in (("status", clean_status), ("music_title", clean_music_title),
                     ("music_url", clean_music_url), ("accent", clean_accent)):
         if key in body:
@@ -232,3 +244,36 @@ def clean_duration(v):
     except (TypeError, ValueError):
         return 0
     return max(0, min(n, 180))
+
+
+def clean_goal(v):
+    v = (v or "unsure").strip() or "unsure"
+    if v not in GOAL_IDS:
+        raise _Bad("Выберите, что вы ищете")
+    return v
+
+
+def clean_post_text(v):
+    v = (v or "").strip()
+    if len(v) > 1000:
+        raise _Bad("Пост длиннее 1000 символов")
+    return v
+
+
+def clean_search_query(v):
+    v = " ".join((v or "").split())
+    return v[:50]
+
+
+def validate_report(body):
+    """-> (reason, details, context). Ошибки — в том же формате, что и у остальных форм."""
+    errors = {}
+    reason = body.get("reason")
+    if reason not in REPORT_REASONS:
+        errors["reason"] = "Выберите причину жалобы"
+    details = " ".join(str(body.get("details") or "").split())
+    if len(details) > 500:
+        errors["details"] = "Пояснение — не больше 500 символов"
+    context = body.get("context") if body.get("context") in ("profile", "chat", "post") else "profile"
+    _finish(errors)
+    return reason, details, context

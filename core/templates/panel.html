@@ -7,6 +7,13 @@
   <div id="stats" class="stats"></div>
 
   <div class="panel">
+    <h2>{% icon "flag" %} Жалобы <span class="badge off" id="reports-count" hidden>0</span></h2>
+    <p class="muted">Новые жалобы пользователей. Можно заблокировать автора анкеты или отклонить жалобу.</p>
+    <div class="reports" id="reports"></div>
+    <p class="muted small" id="reports-empty" hidden>Открытых жалоб нет.</p>
+  </div>
+
+  <div class="panel">
     <h2>{% icon "sparkles" %} Интересы</h2>
     <p class="muted">Этот список пользователи видят при регистрации и в профиле. Нажмите на интерес, чтобы удалить его.</p>
     <form id="interest-form" class="inline-form" novalidate>

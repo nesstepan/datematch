@@ -21,6 +21,7 @@
       <div class="field"><label for="f-min">Возраст от</label><input id="f-min" type="number" min="18" max="99" placeholder="18"></div>
       <div class="field"><label for="f-max">Возраст до</label><input id="f-max" type="number" min="18" max="99" placeholder="99"></div>
     </div>
+    <div class="field"><span class="label">Что ищут</span><div id="f-goals" class="chips" role="group" aria-label="Цели знакомства"></div></div>
     <div class="field"><span class="label">Интересы (подойдёт любой)</span><div id="f-interests" class="chips" role="group" aria-label="Интересы"></div></div>
     <label class="check"><input id="f-video" type="checkbox"> Только с видео в анкете</label>
     <label class="check"><input id="f-music" type="checkbox"> Только с любимой музыкой</label>
@@ -29,7 +30,7 @@
   </form>
   <div id="deck" class="deck" aria-live="polite"></div>
   <div id="empty" class="empty" hidden>
-    <div class="empty-ic">{% icon "users" "lg" %}</div>
+    {% art "cupid" "empty-art" %}
     <h2>Анкеты закончились</h2>
     <p class="muted">Загляните позже: новые люди появляются каждый день. Можно также ослабить фильтры.</p>
     <button class="btn" id="reload" type="button">{% icon "refresh" %}Проверить ещё раз</button>
@@ -42,6 +43,7 @@
 </section>
 <div class="modal" id="video-modal" hidden><button class="close" id="video-close" type="button" aria-label="Закрыть">{% icon "x" %}</button><div id="video-body"></div></div>
 <div id="match-overlay" class="match-overlay" role="dialog" aria-modal="true" aria-labelledby="match-title" hidden>
+  <span class="cloud c1">{% art "cloud" %}</span><span class="cloud c2">{% art "cloud" %}</span>{% art "cupid" "art-cupid" %}
   <div class="match-box">
     <h2 id="match-title">Это пара!</h2>
     <p id="match-text"></p>

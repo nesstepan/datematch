@@ -8,7 +8,7 @@
   const known = new Set(); let first = true, incoming = null;
 
   function link(n) {
-    if (n.type === "like") return "/discover/";
+    if (n.type === "like") return "/likes/";
     if (n.type === "achievement") return "/profile/#achievements";
     return n.match_id ? "/chat/" + n.match_id + "/" : "/matches/";
   }
@@ -26,6 +26,8 @@
       list.appendChild(a);
     });
     dot.hidden = !items.length; dot.textContent = items.length > 9 ? "9+" : items.length;
+    const likes = items.filter(n => n.type === "like").length, ld = document.getElementById("likes-dot");
+    if (ld) { ld.hidden = !likes; ld.textContent = likes > 9 ? "9+" : likes; }
   }
 
   function markRead(body) {

@@ -9,6 +9,7 @@ Django 5 + Firebase Firestore. Регистрация с фото, профил�
 
 * Дизайн-система, шрифты, иконки: [docs/07_DESIGN.md](docs/07_DESIGN.md)
 * Полная инструкция по выкладке на хостинг: [docs/08_DEPLOY_FULL.md](docs/08_DEPLOY_FULL.md)
+* Как обновлять уже работающий сайт: [docs/09_UPDATING_THE_SITE.md](docs/09_UPDATING_THE_SITE.md)
 
 ```bash
 pip install -r requirements.txt

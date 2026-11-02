@@ -4,11 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="csrf-token" content="{{ csrf_token }}">
-  <meta name="theme-color" content="#6a4cff">
+  <meta name="theme-color" content="#f1ece2">
   <title>{% block title %}DateMatch{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Marck+Script&family=Playfair+Display:ital,wght@0,500;0,700;1,500;1,700&display=swap" rel="stylesheet">
   <script>
     (function () { try {
       var t = localStorage.getItem("dm-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
@@ -18,14 +18,15 @@
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
 </head>
 <body class="{% block bodyclass %}{% endblock %}">
-  {% include "icons.html" %}
+  {% include "icons.html" %}{% include "art.html" %}
   <header class="topbar">
     <a class="brand" href="{% if me %}/discover/{% else %}/{% endif %}" aria-label="DateMatch — на главную">
-      <span class="mark">{% icon "heart" "fill" %}</span><span class="word">DateMatch</span>
+      {% art "mark" "mark" %}<span class="word">Date<i>Match</i></span>
     </a>
     {% if me %}
     <nav class="nav" aria-label="Основное меню">
       <a href="/discover/" data-nav="discover">{% icon "layers" %}<span>Лента</span></a>
+      <a href="/likes/" data-nav="likes">{% icon "heart" %}<span>Симпатии</span><span class="dot" id="likes-dot" hidden>0</span></a>
       <a href="/matches/" data-nav="matches">{% icon "chat-heart" %}<span>Пары</span></a>
       <a href="/profile/" data-nav="profile">{% icon "user" %}<span>Профиль</span></a>
       {% if me.is_admin %}<a href="/panel/" data-nav="panel">{% icon "shield" %}<span>Админ</span></a>{% endif %}
@@ -37,6 +38,7 @@
     </nav>
     {% endif %}
     <div class="tools">
+      {% if me %}<a class="icon-btn" href="/search/" aria-label="Поиск людей" title="Поиск людей">{% icon "search" %}</a>{% endif %}
       <button class="icon-btn" id="theme-btn" type="button" aria-label="Переключить тёмную тему" title="Тёмная / светлая тема">{% icon "moon" "when-light" %}{% icon "sun" "when-dark" %}</button>
       {% if me %}
       <div class="bell-wrap">
@@ -56,7 +58,7 @@
   </header>
   <main class="shell">{% block content %}{% endblock %}</main>
   <div id="toasts" class="toasts" role="status" aria-live="polite"></div>
-  {% if me %}<div class="incoming" id="incoming" role="alertdialog" aria-live="assertive" hidden>
+  {% if me and calls_enabled %}<div class="incoming" id="incoming" role="alertdialog" aria-live="assertive" hidden>
     <img id="incoming-photo" alt=""><div class="txt"><strong id="incoming-name"></strong><br><span class="muted small" id="incoming-kind"></span></div>
     <button class="btn sm" id="incoming-accept" type="button">{% icon "phone" %}Принять</button>
     <button class="btn danger sm" id="incoming-decline" type="button" aria-label="Отклонить звонок">{% icon "x" %}</button>

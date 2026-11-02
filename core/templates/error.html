@@ -1,9 +1,10 @@
 {% load static dm %}<!doctype html>
 <html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ status }} — DateMatch</title>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600&family=Montserrat:wght@700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600&family=Playfair+Display:ital,wght@0,700;1,500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'css/app.css' %}"></head>
-<body>{% include "icons.html" %}<main class="shell narrow center-page">
+<body>{% include "icons.html" %}{% include "art.html" %}<main class="shell narrow center-page">
+  {% art "cupid" "empty-art" %}
   <p class="big-code">{{ status }}</p>
   <h1>{{ title }}</h1>
   <p class="muted">{{ text }}</p>

@@ -12,7 +12,7 @@
   async function loadStats() {
     const s = await DM.api("/api/admin/stats/");
     statsBox.textContent = "";
-    [["Пользователи", s.users], ["Активные", s.active_users], ["Пары", s.matches], ["Свайпы", s.swipes], ["Интересы", s.interests]]
+    [["Пользователи", s.users], ["Активные", s.active_users], ["Жалобы", s.reports_open || 0], ["Пары", s.matches], ["Свайпы", s.swipes], ["Интересы", s.interests]]
       .forEach(([label, n]) => {
         const d = DM.el("div", "stat"); d.appendChild(DM.el("b", "", String(n))); d.appendChild(DM.el("span", "muted", label));
         statsBox.appendChild(d);
@@ -77,4 +77,36 @@
   filter.addEventListener("input", drawUsers);
 
   Promise.all([loadStats(), loadInterests(), loadUsers()]).catch(e => DM.toast(e.message, "error"));
+
+  /* жалобы пользователей */
+  const repBox = document.getElementById("reports"), repEmpty = document.getElementById("reports-empty"), repCount = document.getElementById("reports-count");
+  const CONTEXT = { profile: "анкета", chat: "чат", post: "пост" };
+  async function loadReports() {
+    const { reports } = await DM.api("/api/admin/reports/");
+    repBox.textContent = ""; repEmpty.hidden = reports.length > 0; repCount.hidden = !reports.length; repCount.textContent = reports.length;
+    reports.forEach(r => {
+      const d = DM.el("div", "report"), head = DM.el("div", "head");
+      head.appendChild(DM.el("strong", "", r.target.name));
+      head.appendChild(DM.el("span", "badge off", r.reason_title));
+      head.appendChild(DM.el("span", "muted small", "от " + r.from_name + " · " + (CONTEXT[r.context] || r.context) + " · " + DM.dateText(r.created_at)));
+      d.appendChild(head);
+      d.appendChild(DM.el("div", "muted small", r.target.email + (r.target.is_active ? "" : " · уже заблокирован")));
+      if (r.details) d.appendChild(DM.el("p", "", r.details));
+      const acts = DM.el("div", "acts");
+      const view = DM.el("a", "btn ghost sm", "Открыть анкету"); view.href = "/u/" + r.target.uid + "/"; view.target = "_blank"; view.rel = "noopener";
+      const dismiss = DM.el("button", "btn ghost sm", "Отклонить"); dismiss.type = "button";
+      acts.append(view, dismiss);
+      if (!r.target.is_admin) {
+        const block = DM.el("button", "btn danger sm", "Заблокировать"); block.type = "button"; acts.appendChild(block);
+        block.addEventListener("click", () => resolve(r, "block", "Пользователь заблокирован"));
+      }
+      dismiss.addEventListener("click", () => resolve(r, "dismiss", "Жалоба отклонена"));
+      d.appendChild(acts); repBox.appendChild(d);
+    });
+  }
+  function resolve(r, action, msg) {
+    if (action === "block" && !confirm("Заблокировать «" + r.target.name + "»? Войти на сайт он больше не сможет.")) return;
+    run(async () => { await DM.api("/api/admin/reports/" + r.id + "/", { method: "PATCH", json: { action } }); await Promise.all([loadReports(), loadStats(), loadUsers()]); }, msg);
+  }
+  loadReports().catch(e => DM.toast(e.message, "error"));
 })();

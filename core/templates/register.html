@@ -4,7 +4,8 @@
 {% block content %}
 <section class="narrow">
   <div class="panel">
-    <div class="page-head"><h1>Создайте анкету</h1><p>Займёт около минуты. Email видите только вы.</p></div>
+    {% art "cupid" "corner-art" %}
+    <div class="page-head"><h1>Создайте <em>анкету</em></h1><p>Займёт около минуты. Email видите только вы.</p></div>
     <form id="reg-form" class="form" novalidate enctype="multipart/form-data">
       <div class="form-section">
         <h2><span class="step-no">1</span>Аккаунт</h2>
@@ -43,6 +44,11 @@
               <option value="female">Женщин</option><option value="everyone">Всех</option></select>
             <p class="err" data-err="looking_for"></p></div>
         </div>
+        <div class="field"><label for="goal">Что вы ищете</label>
+          <select id="goal" name="goal">
+            <option value="unsure">Пока не знаю</option><option value="relationship">Серьёзные отношения</option>
+            <option value="dating">Свидания</option><option value="friends">Дружба</option><option value="chat">Общение</option></select>
+          <p class="err" data-err="goal"></p></div>
         <div class="field"><label for="bio">О себе</label>
           <textarea id="bio" name="bio" rows="3" maxlength="500" placeholder="Чем увлекаетесь, что ищете, чем любите заниматься по выходным"></textarea>
           <p class="hint"><span id="bio-count">0</span> из 500</p><p class="err" data-err="bio"></p></div>

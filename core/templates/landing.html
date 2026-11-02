@@ -3,37 +3,53 @@
 {% block content %}
 <section class="hero">
   <div class="hero-copy">
-    <span class="eyebrow">{% icon "sparkles" %}Знакомства без лишнего шума</span>
-    <h1>Находите людей, которым вы тоже нравитесь</h1>
-    <p class="lead">Листайте анкеты и ставьте лайки. Чат открывается только тогда, когда симпатия взаимна, поэтому писать будут те, кто вам интересен.</p>
-    <p class="row"><a class="btn" href="/register/">Создать анкету</a> <a class="btn ghost" href="/login/">У меня уже есть аккаунт</a></p>
+    <span class="eyebrow">{% icon "sparkles" %}Знакомства по старинке и по-новому</span>
+    <h1>Стрела Амура <em>не промахивается</em>, когда симпатия взаимна</h1>
+    <p class="lead">Листайте анкеты, как карты Таро: нравится или нет. Чат откроется только тогда, когда выбор совпал. Никаких лишних сообщений от тех, кто вам не интересен.</p>
+    <p class="row"><a class="btn" href="/register/">Создать анкету</a> <a class="btn ghost" href="/login/">Войти</a></p>
   </div>
-  <div class="hero-demo" aria-hidden="true">
-    <div class="demo-card back"></div>
-    <div class="demo-card front">
-      <div class="demo-photo">{% icon "user" "xl" %}</div>
-      <div class="demo-info"><strong>Мария, 27</strong><span>Кофе · Походы · Кино</span></div>
-      <span class="stamp like show">Нравится</span>
+  <div class="hero-art" aria-hidden="true">
+    <div class="tarot">
+      <div class="tarot-frame">
+        <span class="tarot-num">VI</span>
+        {% art "sun" "sun" %}
+        <span class="cl l">{% art "cloud" %}</span><span class="cl r">{% art "cloud" %}</span>
+        {% art "cupid" "cupid" %}
+        {% art "rose" "rose l" %}{% art "rose" "rose l2" %}{% art "rose" "rose r" %}
+        <div class="tarot-title">{% art "star" %}<h2>Влюблённые</h2>{% art "star" %}</div>
+      </div>
+    </div>
+    <span class="petal"></span><span class="petal"></span><span class="petal"></span>
+    <span class="note">Лайки вернее стрел: они взаимные</span>
+  </div>
+</section>
+
+<section class="dark-band torn-top">
+  <span class="cloud c1">{% art "cloud" %}</span><span class="cloud c2">{% art "cloud" %}</span><span class="cloud c3">{% art "cloud" %}</span>
+  <div class="inner">
+    <h2>Три шага до <em>первого сообщения</em></h2>
+    <div class="arcana">
+      <div class="arcanum"><div class="arcanum-in"><span class="num">I</span><div class="pic">{% icon "user" "lg" %}</div><h3>Расскажите о себе</h3>
+        <p>Фото, пара слов, интересы. Можно добавить видео и любимую песню.</p><div class="cap">Анкета</div></div></div>
+      <div class="arcanum"><div class="arcanum-in"><span class="num">II</span><div class="pic">{% icon "layers" "lg" %}</div><h3>Листайте ленту</h3>
+        <p>Смахните карточку вправо, если нравится, влево, если нет. Настройте фильтры.</p><div class="cap">Лента</div></div></div>
+      <div class="arcanum"><div class="arcanum-in"><span class="num">III</span><div class="pic">{% icon "hearts" "lg" %}</div><h3>Общайтесь</h3>
+        <p>При взаимном лайке появляется пара: текст, фото, голосовые и подарки.</p><div class="cap">Пара</div></div></div>
     </div>
   </div>
 </section>
 
-<h2 class="section-title">Как это работает</h2>
-<section class="steps">
-  <div class="step"><div class="badge-ic">{% icon "user" %}</div><h3>1. Расскажите о себе</h3><p>Добавьте фото, пару слов о себе и интересы. Можно записать короткое видео и указать любимую музыку.</p></div>
-  <div class="step"><div class="badge-ic">{% icon "layers" %}</div><h3>2. Листайте ленту</h3><p>Смахните карточку вправо, если человек нравится, и влево, если нет. Настройте фильтры по возрасту и интересам.</p></div>
-  <div class="step"><div class="badge-ic">{% icon "chat-heart" %}</div><h3>3. Общайтесь</h3><p>При взаимном лайке появляется пара и открывается чат: текст, фото, голосовые, подарки и звонки.</p></div>
-</section>
-
 <section class="perks">
-  <div class="perk"><div class="badge-ic">{% icon "eye-off" %}</div><h3>Вы решаете, кому видны</h3><p>Анкету можно скрыть из поиска в любой момент.</p></div>
-  <div class="perk"><div class="badge-ic">{% icon "video" %}</div><h3>Видео и аудио звонки</h3><p>Познакомьтесь поближе, не выходя из чата.</p></div>
-  <div class="perk"><div class="badge-ic">{% icon "gift" %}</div><h3>Виртуальные подарки</h3><p>Роза, кофе, торт — бесплатно и без лишних шагов.</p></div>
-  <div class="perk"><div class="badge-ic">{% icon "moon" %}</div><h3>Светлая и тёмная тема</h3><p>Удобно и днём, и поздним вечером.</p></div>
+  <div class="perk"><div class="badge-ic">{% icon "eye-off" %}</div><h3>Вы решаете, кому видны</h3><p>Скройте анкету из поиска или статус «в сети» в любой момент.</p></div>
+  <div class="perk"><div class="badge-ic">{% icon "ban" %}</div><h3>Чёрный список и жалобы</h3><p>Заблокируйте любого одним нажатием, администратор разберёт жалобу.</p></div>
+  <div class="perk"><div class="badge-ic">{% icon "check-check" %}</div><h3>Статусы сообщений</h3><p>Видно, когда сообщение доставлено и прочитано, и когда собеседник печатает.</p></div>
+  <div class="perk"><div class="badge-ic">{% icon "pen" %}</div><h3>Своя страница</h3><p>Публикуйте посты и фото, чтобы вас можно было узнать лучше.</p></div>
 </section>
 
 <section class="cta-band">
-  <h2>Готовы встретить кого-то интересного?</h2>
-  <a class="btn" href="/register/">Создать анкету за минуту</a>
+  {% art "cupid" "art" %}
+  <h2>Готовы вытянуть <em>свою карту</em>?</h2>
+  <p class="muted">Регистрация занимает около минуты.</p>
+  <a class="btn" href="/register/">Создать анкету</a>
 </section>
 {% endblock %}

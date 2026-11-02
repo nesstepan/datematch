@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% load static dm %}
+{% block title %}Анкета — DateMatch{% endblock %}
+{% block content %}
+<section id="user-root" data-uid="{{ target_uid }}" data-me="{% if is_me %}1{% else %}0{% endif %}">
+  <div id="user-body">
+    <div class="skeleton" style="height:420px"></div>
+  </div>
+  <div id="user-missing" class="empty" hidden>{% art "cupid" "empty-art" %}<h2>Анкета недоступна</h2>
+    <p class="muted">Возможно, пользователь скрыл её, удалил или добавил вас в чёрный список.</p><a class="btn" href="/search/">К поиску</a></div>
+</section>
+<div class="modal" id="video-modal" hidden><button class="close" id="video-close" type="button" aria-label="Закрыть">{% icon "x" %}</button><div id="video-body"></div></div>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/people.js' %}"></script><script src="{% static 'js/user.js' %}"></script>{% endblock %}

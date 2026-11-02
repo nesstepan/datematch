@@ -5,7 +5,7 @@
 
   try {
     const { user } = await DM.api("/api/me/");
-    for (const k of ["name", "age", "gender", "looking_for", "bio"]) form.elements[k].value = user[k];
+    for (const k of ["name", "age", "gender", "looking_for", "goal", "bio"]) form.elements[k].value = user[k] || (k === "goal" ? "unsure" : "");
     await PF.renderInterests(box, user.interests);
   } catch (e) { DM.toast(e.message, "error"); }
   PF.bindBioCounter(form);

@@ -28,7 +28,13 @@ def current_user(request):
     if not user.get("is_active", True):
         request.session.flush()
         raise ApiError("Ваш аккаунт заблокирован администратором", 403, "blocked")
+    services.touch(uid, user)  # «был в сети» (не чаще раза в минуту)
     return user
+
+
+def calls_required():
+    if not settings.CALLS_ENABLED:
+        raise ApiError("Звонки сейчас отключены", 404, "not_found")
 
 
 def api_view(methods, login=True, admin=False):
@@ -74,7 +80,7 @@ def read_json(request):
 
 def profile_form(request):
     form = {k: request.POST.get(k, "") for k in
-            ("email", "password", "name", "age", "gender", "looking_for", "bio")}
+            ("email", "password", "name", "age", "gender", "looking_for", "bio", "goal")}
     form["interests"] = request.POST.getlist("interests")
     return form
 
@@ -198,6 +204,7 @@ def feed(request):
                        {"age_min": "Минимум не может быть больше максимума"})
     filters = {"age_min": age_min, "age_max": age_max,
                "interests": [i.strip() for i in request.GET.get("interests", "").split(",") if i.strip()][:8],
+               "goals": [g for g in request.GET.get("goals", "").split(",") if g in validators.GOAL_IDS],
                "with_video": request.GET.get("with_video") == "1", "with_music": request.GET.get("with_music") == "1"}
     return {"profiles": services.feed(request.me["id"], limit, filters)}
 
@@ -231,8 +238,7 @@ def messages(request, match_id):
             since = float(since) if since not in (None, "") else None
         except ValueError:
             raise ApiError("since должен быть числом", 400, "bad_request")
-        msgs, deleted = services.list_messages(match_id, uid, since, with_deleted=True)
-        return {"messages": msgs, "deleted": deleted}
+        return services.chat_poll(match_id, uid, since)
     upload = request.FILES.get("file")
     if upload is not None:  # фото / GIF / видео / голосовое
         if upload.size > 7 * 1024 * 1024:
@@ -254,6 +260,7 @@ def message_detail(request, match_id, message_id):
 
 @api_view(["GET", "POST"])
 def signals(request, match_id):
+    calls_required()
     uid = request.me["id"]
     if request.method == "GET":
         try:
@@ -317,7 +324,7 @@ def me_video(request):
 # ---------- уведомления, подарки, достижения ----------
 @api_view(["GET"])
 def notifications(request):
-    items = features.list_notifications(request.me["id"])
+    items = services.list_notifications(request.me["id"])
     return {"notifications": items, "unread": len(items)}
 
 
@@ -339,6 +346,7 @@ def notifications_read(request):
 
 @api_view(["GET"])
 def ice_servers(request):
+    calls_required()
     servers = [{"urls": ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"]}]
     if settings.TURN_URLS:
         servers.append({"urls": settings.TURN_URLS, "username": settings.TURN_USERNAME,
@@ -353,7 +361,8 @@ def gifts(request):
 
 @api_view(["GET"])
 def achievements(request):
-    return {"achievements": features.achievement_list(request.me)}
+    items = features.achievement_list(request.me)
+    return {"achievements": items if settings.CALLS_ENABLED else [a for a in items if a["id"] != "caller"]}
 
 
 # ---------- админ-панель ----------
@@ -394,4 +403,88 @@ def admin_interests(request):
 @api_view(["DELETE"], admin=True)
 def admin_interest(request, iid):
     services.delete_interest(iid)
+    return {"ok": True}
+
+
+@api_view(["GET"], admin=True)
+def admin_reports(request):
+    return {"reports": services.list_reports()}
+
+
+@api_view(["PATCH"], admin=True)
+def admin_report(request, rid):
+    services.resolve_report(rid, read_json(request).get("action"))
+    return {"ok": True}
+
+
+# ---------- «кто меня лайкнул», поиск, страница пользователя, посты ----------
+@api_view(["GET"])
+def likes(request):
+    return {"profiles": services.list_likes(request.me["id"])}
+
+
+@api_view(["GET"])
+def search(request):
+    age_min, age_max = _int_param(request, "age_min", 18, 18, 99), _int_param(request, "age_max", 99, 18, 99)
+    if age_min > age_max:
+        raise ApiError("Минимальный возраст больше максимального", 422, "validation_error",
+                       {"age_min": "Минимум не может быть больше максимума"})
+    goal = request.GET.get("goal", "")
+    if goal and goal not in validators.GOAL_IDS:
+        raise ApiError("Неизвестная цель знакомства", 422, "validation_error", {"goal": "Выберите из списка"})
+    return {"profiles": services.search_users(request.me["id"], request.GET.get("q", ""), age_min, age_max, goal)}
+
+
+@api_view(["GET"])
+def user_view(request, uid):
+    return services.profile_view(request.me["id"], uid)
+
+
+@api_view(["POST"])
+def my_posts(request):
+    photo = request.FILES.get("photo")
+    if photo is not None and photo.size > 7 * 1024 * 1024:
+        raise ApiError("Файл слишком большой", 422, "validation_error", {"photo": "Файл больше 7 МБ"})
+    post = services.create_post(request.me["id"], request.POST.get("text", ""), photo.read() if photo else None)
+    return {"post": post}, 201
+
+
+@api_view(["DELETE"])
+def my_post(request, post_id):
+    services.delete_post(request.me["id"], post_id)
+    return {"ok": True}
+
+
+# ---------- чёрный список, жалобы, «печатает» ----------
+@api_view(["GET", "POST"])
+def blocks(request):
+    uid = request.me["id"]
+    if request.method == "POST":
+        target = read_json(request).get("uid")
+        if not isinstance(target, str):
+            raise ApiError("Нужно поле uid", 400, "bad_request")
+        services.block_user(uid, target)
+    return {"blocked": services.list_blocked(uid)}
+
+
+@api_view(["DELETE"])
+def block_detail(request, uid):
+    services.unblock_user(request.me["id"], uid)
+    return {"blocked": services.list_blocked(request.me["id"])}
+
+
+@api_view(["POST"])
+def reports(request):
+    body = read_json(request)
+    target = body.get("uid")
+    if not isinstance(target, str):
+        raise ApiError("Нужно поле uid", 400, "bad_request")
+    reason, details, context = validators.validate_report(body)
+    services.create_report(request.me["id"], target, reason, details, context, also_block=body.get("block") is True)
+    return {"ok": True}, 201
+
+
+@api_view(["POST"])
+def typing(request, match_id):
+    services.set_typing(match_id, request.me["id"])
     return {"ok": True}

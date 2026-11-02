@@ -10,6 +10,8 @@
   matches/<id>/signals  — сигналы звонков WebRTC
   media (+ chunks)      — файлы: видео анкеты и вложения чата
   notifications         — уведомления о лайках, парах, сообщениях, звонках, достижениях
+  users/<id>/posts      — посты на странице пользователя
+  reports               — жалобы на пользователей (разбирает администратор)
 """
 import base64
 import random
@@ -97,13 +99,15 @@ def public_profile(u):
             "video_url": f"/media/{u['video_id']}/" if u.get("video_id") else "",
             "music_title": u.get("music_title", ""), "music_url": u.get("music_url", ""),
             "accent": u.get("accent", ""), "status": u.get("status", ""),
-            "badges": features.badges(u)}
+            "goal": u.get("goal", "unsure"), "goal_title": validators.GOAL_TITLES.get(u.get("goal", "unsure"), ""),
+            **presence(u), "badges": features.badges(u)}
 
 
 def private_profile(u):
     return {**public_profile(u), "email": u["email"], "gender": u["gender"],
             "looking_for": u["looking_for"], "is_admin": bool(u.get("is_admin")),
-            "hidden": bool(u.get("hidden")), "created_at": u.get("created_at")}
+            "hidden": bool(u.get("hidden")), "hide_online": bool(u.get("hide_online")),
+            "blocked_count": len(u.get("blocked_uids") or []), "created_at": u.get("created_at")}
 
 
 def _save_photo(uid, jpeg_bytes):
@@ -129,6 +133,7 @@ def create_user(cleaned, jpeg_bytes, admin_emails=()):
         "email": cleaned["email"], "password_hash": security.hash_password(cleaned["password"]),
         "name": cleaned["name"], "age": cleaned["age"], "gender": cleaned["gender"],
         "looking_for": cleaned["looking_for"], "bio": cleaned["bio"], "interests": cleaned["interests"],
+        "goal": cleaned.get("goal", "unsure"), "hide_online": False, "blocked_uids": [], "last_seen": ts,
         "is_admin": cleaned["email"] in admin_emails, "is_active": True,
         "created_at": ts, "photo_updated_at": ts,
     })
@@ -150,6 +155,10 @@ def delete_user_cascade(uid):
     for m in st.query("matches", [("users", "array_contains", uid)]):
         _delete_match(m["id"])
     media.delete_where("owner", uid)
+    for p in st.query(f"users/{uid}/posts"):
+        st.delete(f"users/{uid}/posts", p["id"])
+    for r in st.query("reports", [("target_uid", "==", uid)]) + st.query("reports", [("from_uid", "==", uid)]):
+        st.delete("reports", r["id"])
     features.delete_user_notifications(uid)
     st.delete("photos", uid)
     st.delete("users", uid)
@@ -209,16 +218,22 @@ def _wants(user, other):
 
 
 def feed(uid, limit=10, filters=None):
-    """filters: age_min, age_max, interests (список названий, подходит любой), with_video, with_music."""
+    """filters: age_min, age_max, interests (список названий, подходит любой), goals, with_video, with_music."""
     f = filters or {}
     st = get_store()
     me = get_user(uid)
     swiped = {s["to_uid"] for s in st.query("swipes", [("from_uid", "==", uid)])}
     pool = st.query("users", [("is_active", "==", True)], limit=500)
     wanted = {i.lower() for i in f.get("interests", [])}
+    goals = set(f.get("goals") or [])
+    blocked_me = blocked_ids(me)
 
     def ok(u):
         if u["id"] == uid or u["id"] in swiped or u.get("hidden") or not (_wants(me, u) and _wants(u, me)):
+            return False
+        if u["id"] in blocked_me or uid in blocked_ids(u):
+            return False
+        if goals and u.get("goal", "unsure") not in goals:
             return False
         if u["age"] < f.get("age_min", 18) or u["age"] > f.get("age_max", 99):
             return False
@@ -238,6 +253,8 @@ def swipe(uid, target_uid, like):
         raise ApiError("Нельзя оценивать свой профиль", 400, "bad_request")
     target = get_user(target_uid)
     if not target or not target.get("is_active", True):
+        raise ApiError("Этот профиль больше недоступен", 404, "not_found")
+    if _blocked_either(get_user(uid), target):
         raise ApiError("Этот профиль больше недоступен", 404, "not_found")
     st = get_store()
     prev = st.get("swipes", f"{uid}__{target_uid}")
@@ -318,9 +335,9 @@ def _message_view(m, uid):
             "created_at": m["created_at"]}
 
 
-def list_messages(mid, uid, since=None, with_deleted=False):
+def list_messages(mid, uid, since=None, with_deleted=False, match=None):
     """Сообщения пары. С with_deleted=True вернёт ещё и id удалённых (берутся из документа пары — одно чтение)."""
-    match = get_match_for(mid, uid)
+    match = match or get_match_for(mid, uid)
     st = get_store()
     path = f"matches/{mid}/messages"
     if since is None:
@@ -341,7 +358,8 @@ def _store_message(mid, uid, doc, preview, counters):
     ts = _now()
     msg_id = st.new_id()
     st.set(f"matches/{mid}/messages", msg_id, {"sender": uid, "created_at": ts, **doc})
-    st.update("matches", mid, {"last_message": preview[:80], "last_message_at": ts})
+    st.update("matches", mid, {"last_message": preview[:80], "last_message_at": ts, "last_sender": uid,
+                               f"typing_{uid}": 0})
     other_id = next(x for x in match["users"] if x != uid)
     me = get_user(uid)
     features.notify(other_id, "message", f"{me['name']}: {preview[:80]}", key=msg_id, from_uid=uid,
@@ -431,13 +449,269 @@ def get_call_signals(mid, uid, since):
     return features.get_signals(mid, uid, since)
 
 
+# ---------- присутствие («в сети») ----------
+ONLINE_WINDOW = 120  # секунд: столько после последнего запроса человек считается «в сети»
+
+
+def presence(u, now=None):
+    """{'online': bool, 'last_seen': ts|None}. Если человек скрыл статус, о нём ничего не известно."""
+    if u.get("hide_online"):
+        return {"online": False, "last_seen": None}
+    ts = u.get("last_seen") or 0
+    return {"online": bool(ts) and (now or _now()) - ts < ONLINE_WINDOW, "last_seen": ts or None}
+
+
+def touch(uid, user=None):
+    """Обновляет «был в сети» не чаще раза в минуту, чтобы не тратить записи Firestore."""
+    u = user or get_user(uid)
+    if u and _now() - (u.get("last_seen") or 0) > 60:
+        get_store().update("users", uid, {"last_seen": _now()})
+
+
+# ---------- чёрный список ----------
+MAX_BLOCKED = 200
+
+
+def blocked_ids(u):
+    return set(u.get("blocked_uids") or [])
+
+
+def _blocked_either(a, b):
+    """Заблокировал ли кто-то из двоих другого (a, b — документы пользователей)."""
+    return b["id"] in blocked_ids(a) or a["id"] in blocked_ids(b)
+
+
+def block_user(uid, target_uid):
+    if uid == target_uid:
+        raise ApiError("Нельзя заблокировать самого себя", 400, "bad_request")
+    if not get_user(target_uid):
+        raise ApiError("Пользователь не найден", 404, "not_found")
+    me = get_user(uid)
+    lst = list(me.get("blocked_uids") or [])
+    if target_uid not in lst:
+        if len(lst) >= MAX_BLOCKED:
+            raise ApiError("Чёрный список переполнен (максимум 200)", 422, "validation_error")
+        lst.append(target_uid)
+        get_store().update("users", uid, {"blocked_uids": lst})
+    mid = "__".join(sorted([uid, target_uid]))
+    if get_store().get("matches", mid):
+        _delete_match(mid)  # переписка и пара исчезают у обоих
+
+
+def unblock_user(uid, target_uid):
+    me = get_user(uid)
+    lst = [x for x in (me.get("blocked_uids") or []) if x != target_uid]
+    get_store().update("users", uid, {"blocked_uids": lst})
+
+
+def list_blocked(uid):
+    out = []
+    for tid in get_user(uid).get("blocked_uids") or []:
+        u = get_user(tid)
+        if u:
+            out.append({"uid": tid, "name": u["name"], "photo_url": photo_url(u)})
+    return out
+
+
+# ---------- «кто меня лайкнул» и поиск ----------
+def list_likes(uid, limit=50):
+    """Люди, которые лайкнули вас, а вы им ещё не ответили."""
+    st = get_store()
+    me = get_user(uid)
+    answered = {s["to_uid"] for s in st.query("swipes", [("from_uid", "==", uid)])}
+    likes = st.query("swipes", [("to_uid", "==", uid), ("like", "==", True)])
+    likes.sort(key=lambda s: s.get("created_at", 0), reverse=True)
+    out = []
+    for s in likes:
+        if s["from_uid"] in answered:
+            continue
+        u = get_user(s["from_uid"])
+        if not u or not u.get("is_active", True) or _blocked_either(me, u):
+            continue
+        out.append({**public_profile(u), "liked_at": s.get("created_at")})
+        if len(out) >= limit:
+            break
+    return out
+
+
+def search_users(uid, q="", age_min=18, age_max=99, goal="", limit=30):
+    """Поиск по имени и интересам. Скрытые анкеты и заблокированные не показываются."""
+    me = get_user(uid)
+    qn = validators.clean_search_query(q).casefold()
+    found = []
+    for u in get_store().query("users", [("is_active", "==", True)], limit=500):
+        if u["id"] == uid or u.get("hidden") or _blocked_either(me, u):
+            continue
+        if not age_min <= u["age"] <= age_max or (goal and u.get("goal", "unsure") != goal):
+            continue
+        if qn and qn not in u["name"].casefold() and not any(qn in i.casefold() for i in u.get("interests", [])):
+            continue
+        found.append(u)
+    found.sort(key=lambda u: (not presence(u)["online"], u["name"].casefold()))
+    return [public_profile(u) for u in found[:limit]]
+
+
+# ---------- страница пользователя и посты ----------
+MAX_POSTS = 50
+
+
+def _post_view(p):
+    return {"id": p["id"], "text": p.get("text", ""), "created_at": p["created_at"],
+            "image_url": f"/media/{p['media_id']}/" if p.get("media_id") else ""}
+
+
+def list_posts(uid, limit=20):
+    return [_post_view(p) for p in
+            get_store().query(f"users/{uid}/posts", order_by="created_at", descending=True, limit=limit)]
+
+
+def create_post(uid, raw_text, raw_photo=None):
+    try:
+        text = validators.clean_post_text(raw_text)
+    except validators._Bad as exc:
+        raise ApiError(str(exc), 422, "validation_error", {"text": str(exc)})
+    if not text and not raw_photo:
+        raise ApiError("Напишите что-нибудь или прикрепите фото", 422, "validation_error",
+                       {"text": "Напишите что-нибудь или прикрепите фото"})
+    st, path = get_store(), f"users/{uid}/posts"
+    if len(st.query(path, limit=MAX_POSTS + 1)) >= MAX_POSTS:
+        raise ApiError("Слишком много постов — удалите старые (максимум 50)", 422, "validation_error")
+    media_id = ""
+    if raw_photo:
+        kind, ctype, data = media.classify_chat(raw_photo, "")
+        if kind not in ("image", "gif"):
+            raise ApiError("К посту можно прикрепить только фото или GIF", 422, "validation_error",
+                           {"photo": "К посту можно прикрепить только фото или GIF"})
+        media_id = media.save(uid, "post", ctype, data, public=True)
+    pid = st.new_id()
+    doc = {"text": text, "media_id": media_id, "created_at": _now()}
+    st.set(path, pid, doc)
+    return _post_view({"id": pid, **doc})
+
+
+def delete_post(uid, post_id):
+    st, path = get_store(), f"users/{uid}/posts"
+    post = st.get(path, post_id)
+    if not post:
+        raise ApiError("Пост не найден", 404, "not_found")
+    media.delete(post.get("media_id"))
+    st.delete(path, post_id)
+
+
+def profile_view(viewer_uid, target_uid):
+    """Страница пользователя: анкета, посты и отношения между вами (пара, лайки)."""
+    viewer, target = get_user(viewer_uid), get_user(target_uid)
+    if not target or not target.get("is_active", True):
+        raise ApiError("Анкета не найдена", 404, "not_found")
+    rel = {"me": viewer_uid == target_uid, "matched": False, "match_id": None,
+           "i_liked": False, "i_passed": False, "liked_me": False}
+    if not rel["me"]:
+        if _blocked_either(viewer, target):
+            raise ApiError("Анкета не найдена", 404, "not_found")
+        st = get_store()
+        mine = st.get("swipes", f"{viewer_uid}__{target_uid}")
+        theirs = st.get("swipes", f"{target_uid}__{viewer_uid}")
+        mid = "__".join(sorted([viewer_uid, target_uid]))
+        matched = bool(st.get("matches", mid))
+        rel.update(matched=matched, match_id=mid if matched else None, i_liked=bool(mine and mine.get("like")),
+                   i_passed=bool(mine and not mine.get("like")), liked_me=bool(theirs and theirs.get("like")))
+        if target.get("hidden") and not (matched or rel["liked_me"] or viewer.get("is_admin")):
+            raise ApiError("Анкета не найдена", 404, "not_found")  # скрытая анкета видна только парам и тем, кого лайкнули вы
+    return {"profile": public_profile(target), "relation": rel, "posts": list_posts(target_uid)}
+
+
+# ---------- жалобы ----------
+def create_report(uid, target_uid, reason, details, context, also_block=False):
+    if uid == target_uid:
+        raise ApiError("Нельзя пожаловаться на самого себя", 400, "bad_request")
+    if not get_user(target_uid):
+        raise ApiError("Пользователь не найден", 404, "not_found")
+    get_store().set("reports", f"{uid}__{target_uid}", {
+        "from_uid": uid, "target_uid": target_uid, "reason": reason, "details": details,
+        "context": context, "status": "open", "created_at": _now()})
+    if also_block:
+        block_user(uid, target_uid)
+
+
+def list_reports(status="open"):
+    st = get_store()
+    items = st.query("reports", [("status", "==", status)])
+    items.sort(key=lambda r: r["created_at"], reverse=True)
+    out = []
+    for r in items[:100]:
+        target, sender = get_user(r["target_uid"]), get_user(r["from_uid"])
+        if not target:
+            st.delete("reports", r["id"])
+            continue
+        out.append({"id": r["id"], "reason": r["reason"], "reason_title": validators.REPORT_REASONS.get(r["reason"], ""),
+                    "details": r.get("details", ""), "context": r.get("context", "profile"),
+                    "created_at": r["created_at"], "from_name": sender["name"] if sender else "(удалён)",
+                    "target": {"uid": target["id"], "name": target["name"], "email": target["email"],
+                               "is_active": target.get("is_active", True), "is_admin": bool(target.get("is_admin"))}})
+    return out
+
+
+def resolve_report(rid, action):
+    st = get_store()
+    report = st.get("reports", rid)
+    if not report:
+        raise ApiError("Жалоба не найдена", 404, "not_found")
+    if action == "block":
+        target = get_user(report["target_uid"])
+        if target and target.get("is_admin"):
+            raise ApiError("Администратора нельзя заблокировать из жалобы", 403, "forbidden")
+        if target:
+            set_user_active(report["target_uid"], False)
+    elif action != "dismiss":
+        raise ApiError("Действие: block или dismiss", 400, "bad_request")
+    st.update("reports", rid, {"status": "closed", "resolution": action})
+
+
+# ---------- статусы сообщений, «печатает», уведомления ----------
+def chat_poll(mid, uid, since=None):
+    """Всё, что нужно открытому чату за один запрос: новые сообщения, удалённые, статусы, «печатает», «в сети»."""
+    match = get_match_for(mid, uid)
+    views, deleted = list_messages(mid, uid, since, with_deleted=True, match=match)
+    other_id = next(x for x in match["users"] if x != uid)
+    other = get_user(other_id)
+    st, now = get_store(), _now()
+    if match.get("last_sender") not in (None, uid) and match.get(f"read_at_{uid}", 0) < match.get("last_message_at", 0):
+        st.update("matches", mid, {f"read_at_{uid}": now, f"delivered_at_{uid}": now})  # собеседнику: «прочитано»
+    read_at = match.get(f"read_at_{other_id}", 0)
+    return {"messages": views, "deleted": deleted,
+            "receipts": {"read_at": read_at, "delivered_at": max(match.get(f"delivered_at_{other_id}", 0), read_at)},
+            "typing": now - match.get(f"typing_{other_id}", 0) < 6,
+            "other": presence(other) if other else {"online": False, "last_seen": None}}
+
+
+def set_typing(mid, uid):
+    match = get_match_for(mid, uid)
+    if _now() - match.get(f"typing_{uid}", 0) >= 2:
+        get_store().update("matches", mid, {f"typing_{uid}": _now()})
+
+
+def list_notifications(uid):
+    """Уведомления + отметка «доставлено»: когда клиент получил уведомление о сообщении, отправителю ставится вторая галочка."""
+    items = features.list_notifications(uid)
+    st, now, seen = get_store(), _now(), set()
+    for n in items:
+        if n["type"] == "message" and n.get("match_id") and not n.get("delivered"):
+            st.update("notifications", n["id"], {"delivered": True})
+            if n["match_id"] not in seen:
+                seen.add(n["match_id"])
+                m = st.get("matches", n["match_id"])
+                if m and uid in m["users"]:
+                    st.update("matches", n["match_id"], {f"delivered_at_{uid}": now})
+    return items
+
+
 # ---------- админка ----------
 def stats():
     st = get_store()
     users = st.query("users")
     return {"users": len(users), "active_users": sum(1 for u in users if u.get("is_active", True)),
             "matches": len(st.query("matches")), "swipes": len(st.query("swipes")),
-            "interests": len(list_interests())}
+            "interests": len(list_interests()), "reports_open": len(st.query("reports", [("status", "==", "open")]))}
 
 
 def admin_users():

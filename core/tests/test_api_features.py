@@ -116,6 +116,7 @@ class FeatureApiTests(SimpleTestCase):
         self.assertEqual(self.b.get("/api/notifications/").json()["unread"], 0)
         self.assertEqual(Client().get("/api/notifications/").status_code, 401)
 
+    @override_settings(CALLS_ENABLED=True)
     def test_signals_api(self):
         mid = self.pair()
         url = f"/api/matches/{mid}/signals/"
@@ -125,7 +126,7 @@ class FeatureApiTests(SimpleTestCase):
         self.assertEqual(self.a.post(url, {"kind": "bad"}, content_type=JSON).status_code, 400)
         self.assertEqual(Client().get(url).status_code, 401)
 
-    @override_settings(TURN_URLS=["turn:turn.example.com:3478"], TURN_USERNAME="u", TURN_CREDENTIAL="p")
+    @override_settings(CALLS_ENABLED=True, TURN_URLS=["turn:turn.example.com:3478"], TURN_USERNAME="u", TURN_CREDENTIAL="p")
     def test_ice_servers(self):
         servers = self.a.get("/api/ice/").json()["iceServers"]
         self.assertEqual(servers[-1]["username"], "u")
@@ -139,3 +140,10 @@ class FeatureApiTests(SimpleTestCase):
             self.assertEqual(self.a.get(url).status_code, 200, url)
         mid = self.pair()
         self.assertEqual(self.a.get(f"/chat/{mid}/").status_code, 200)
+
+    def test_calls_disabled_by_default(self):
+        mid = self.pair()
+        self.assertEqual(self.a.get(f"/api/matches/{mid}/signals/").status_code, 404)
+        self.assertEqual(self.a.get("/api/ice/").status_code, 404)
+        ids = [x["id"] for x in self.a.get("/api/achievements/").json()["achievements"]]
+        self.assertNotIn("caller", ids)
