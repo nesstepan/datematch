@@ -1,48 +1,36 @@
-ОБНОВЛЁННЫЕ ФАЙЛЫ (заменить на GitHub): 32
+ОБНОВЛЁННЫЕ ФАЙЛЫ (заменить на GitHub): 23
   README.md
   config/settings.py
   core/api.py
-  core/features.py
   core/pages.py
   core/services.py
   core/static/css/app.css
-  core/static/js/chat.js
   core/static/js/common.js
   core/static/js/discover.js
-  core/static/js/notify.js
-  core/static/js/panel.js
+  core/static/js/people.js
   core/static/js/profile-extra.js
   core/static/js/profile.js
-  core/templates/base.html
-  core/templates/chat.html
-  core/templates/discover.html
-  core/templates/error.html
-  core/templates/icons.html
-  core/templates/landing.html
-  core/templates/login.html
-  core/templates/matches.html
-  core/templates/panel.html
-  core/templates/profile.html
-  core/templates/register.html
-  core/templatetags/dm.py
-  core/tests/test_api_features.py
-  core/urls.py
-  core/validators.py
-  docs/06_NEW_FEATURES.md
-  docs/07_DESIGN.md
-  docs/08_DEPLOY_FULL.md
-
-НОВЫЕ ФАЙЛЫ (добавить): 11
-  core/static/js/likes.js
-  core/static/js/people.js
-  core/static/js/search.js
   core/static/js/user.js
   core/templates/art.html
-  core/templates/likes.html
-  core/templates/search.html
+  core/templates/base.html
+  core/templates/landing.html
+  core/templates/profile.html
   core/templates/user.html
   core/tests/test_api_social.py
   core/tests/test_social.py
+  core/urls.py
+  docs/06_NEW_FEATURES.md
+  docs/07_DESIGN.md
   docs/09_UPDATING_THE_SITE.md
+
+НОВЫЕ ФАЙЛЫ (добавить): 8
+  .python-version
+  core/static/js/posts.js
+  core/static/js/settings.js
+  core/templates/posts.html
+  core/templates/settings.html
+  docs/10_DEPLOY_RAILWAY.md
+  railway.json
+  runtime.txt
 
 УДАЛИТЬ С GITHUB (если есть): 0

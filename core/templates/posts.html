@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% load static dm %}
+{% block title %}Посты — DateMatch{% endblock %}
+{% block content %}
+<section class="narrow">
+  <div class="page-head"><h1>Посты <em>ваших пар</em></h1><p>Свежие записи людей, с которыми у вас есть пара, и ваши собственные.</p></div>
+  <div id="composer"></div>
+  <div id="list" class="posts" aria-live="polite"></div>
+  <div id="empty" class="empty" hidden>{% art "cupid" "empty-art" %}<h2>Пока здесь тихо</h2>
+    <p class="muted">Когда у вас появятся пары и они что-нибудь опубликуют, посты покажутся здесь. Можно написать первым.</p>
+    <a class="btn" href="/discover/">Открыть ленту</a></div>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/people.js' %}"></script><script src="{% static 'js/posts.js' %}"></script>{% endblock %}

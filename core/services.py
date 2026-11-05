@@ -598,6 +598,21 @@ def delete_post(uid, post_id):
     st.delete(path, post_id)
 
 
+def matches_posts(uid, limit=30, per_user=5):
+    """Лента постов: свежие посты людей, с которыми у вас есть пара, и ваши собственные."""
+    me = get_user(uid)
+    authors = [{"uid": uid, "name": me["name"], "photo_url": photo_url(me), "mine": True}]
+    for m in list_matches(uid):
+        o = m["other"]
+        authors.append({"uid": o["uid"], "name": o["name"], "photo_url": o["photo_url"], "mine": False})
+    items = []
+    for a in authors:
+        for p in list_posts(a["uid"], per_user):
+            items.append({**p, "author": a})
+    items.sort(key=lambda p: p["created_at"], reverse=True)
+    return items[:limit]
+
+
 def profile_view(viewer_uid, target_uid):
     """Страница пользователя: анкета, посты и отношения между вами (пара, лайки)."""
     viewer, target = get_user(viewer_uid), get_user(target_uid)

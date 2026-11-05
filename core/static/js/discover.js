@@ -38,45 +38,63 @@
     card._profile = p;
     if (p.accent) card.style.setProperty("--accent", p.accent);
     const frame = DM.el("div", "tarot-frame");
+
+    /* 1. фото (текст его не закрывает) */
+    const photo = DM.el("div", "card-photo");
     const img = DM.el("img", "cover"); img.src = p.photo_url; img.alt = "Фото: " + p.name; img.draggable = false;
-    frame.append(img, DM.el("span", "tarot-num", DM.roman(p.age)));
-    const info = DM.el("div", "info");
-    if (p.status) info.appendChild(DM.el("p", "status", p.status));
-    if (p.bio) info.appendChild(DM.el("p", "", p.bio));
+    photo.append(img, DM.el("span", "tarot-num", DM.roman(p.age)));
+    const like = DM.el("span", "stamp like", "Нравится"), nope = DM.el("span", "stamp nope", "Пропуск");
+    photo.append(like, nope);
+    if (p.badges && p.badges.length) {
+      const bd = DM.el("div", "badges");
+      p.badges.slice(0, 3).forEach(b => { const x = DM.el("span"); x.appendChild(DM.icon(b.icon)); x.title = b.title; bd.appendChild(x); });
+      photo.appendChild(bd);
+    }
+    if (p.online) {
+      const pr = DM.el("span", "presence-tag"); pr.appendChild(DM.el("span", "online-dot")); pr.appendChild(document.createTextNode("в сети")); photo.appendChild(pr);
+    }
+    frame.appendChild(photo);
+
+    /* 2. имя — подпись карты */
+    const title = DM.el("div", "tarot-title");
+    title.append(DM.art("star"), DM.el("h2", "", p.name), DM.art("star"));
+    frame.appendChild(title);
+
+    /* 3. отдельный прямоугольник с описанием, тегами и кнопками */
+    const body = DM.el("div", "card-body");
+    if (p.status) body.appendChild(DM.el("p", "status", p.status));
+    let bio = null, more = null;
+    if (p.bio) {
+      bio = DM.el("p", "bio", p.bio); body.appendChild(bio);
+      more = DM.el("button", "link-btn more", "Читать полностью"); more.type = "button"; more.hidden = true;
+      more.addEventListener("click", () => {
+        const open = card.classList.toggle("expanded");
+        more.textContent = open ? "Свернуть" : "Читать полностью"; more.setAttribute("aria-expanded", String(open));
+      });
+      body.appendChild(more);
+    }
     const extras = DM.el("div", "extras");
-    const age = DM.el("span", "", DM.ageText(p.age)); extras.appendChild(age);
+    extras.appendChild(DM.el("span", "", DM.ageText(p.age)));
     if (p.goal_title) { const g = DM.el("span"); g.appendChild(DM.icon("target")); g.appendChild(document.createTextNode(p.goal_title)); extras.appendChild(g); }
     if (p.video_url) {
       const b = DM.el("button", "video"); b.type = "button"; b.appendChild(DM.icon("play", "fill")); b.appendChild(document.createTextNode("Видео"));
       b.addEventListener("click", () => playVideo(p.video_url)); extras.appendChild(b);
     }
     if (p.music_title) {
-      const href = safeUrl(p.music_url);
-      const m = href ? DM.el("a") : DM.el("span");
+      const m = DM.el("button", "music"); m.type = "button"; m.setAttribute("aria-label", "Слушать: " + p.music_title);
       m.appendChild(DM.icon("music")); m.appendChild(document.createTextNode(p.music_title));
-      if (href) { m.href = href; m.target = "_blank"; m.rel = "noopener noreferrer nofollow"; }
-      extras.appendChild(m);
+      m.addEventListener("click", () => DM.openPlayer(p.music_title, p.music_url)); extras.appendChild(m);
     }
-    info.appendChild(extras);
-    const tags = DM.el("div", "tags");
-    p.interests.slice(0, 6).forEach(t => tags.appendChild(DM.el("span", "", t)));
-    info.appendChild(tags);
-    frame.appendChild(info);
-    const title = DM.el("div", "tarot-title");
-    title.append(DM.art("star"), DM.el("h2", "", p.name), DM.art("star"));
-    frame.appendChild(title);
-    const like = DM.el("span", "stamp like", "Нравится"), nope = DM.el("span", "stamp nope", "Пропуск");
-    frame.append(like, nope);
-    if (p.badges && p.badges.length) {
-      const bd = DM.el("div", "badges");
-      p.badges.slice(0, 4).forEach(b => { const x = DM.el("span"); x.appendChild(DM.icon(b.icon)); x.title = b.title; bd.appendChild(x); });
-      frame.appendChild(bd);
+    body.appendChild(extras);
+    if (p.interests.length) {
+      const tags = DM.el("div", "tags");
+      p.interests.slice(0, 8).forEach(t => tags.appendChild(DM.el("span", "", t)));
+      body.appendChild(tags);
     }
-    if (p.online) {
-      const pr = DM.el("span", "presence-tag"); pr.appendChild(DM.el("span", "online-dot")); pr.appendChild(document.createTextNode("в сети")); frame.appendChild(pr);
-    }
+    frame.appendChild(body);
     card.appendChild(frame);
     card._like = like; card._nope = nope;
+    card._fit = () => { if (bio && more) more.hidden = !(bio.scrollHeight > bio.clientHeight + 1 || card.classList.contains("expanded")); };
     return card;
   }
 
@@ -91,7 +109,7 @@
   function attachDrag(card) {
     let startX = 0, dx = 0, active = false;
     card.addEventListener("pointerdown", e => {
-      if (busy || e.target.closest("button, a")) return;
+      if (busy || e.target.closest("button, a") || (card.classList.contains("expanded") && e.target.closest(".card-body"))) return;
       active = true; dx = 0; startX = e.clientX; card.setPointerCapture(e.pointerId); card.classList.add("dragging");
     });
     card.addEventListener("pointermove", e => {
@@ -114,7 +132,7 @@
   function render() {
     while (cards.length < 3 && queue.length) {
       const c = buildCard(queue.shift());
-      cards.push(c); deck.appendChild(c);
+      cards.push(c); deck.appendChild(c); c._fit();
     }
     if (cards[0] && !cards[0]._bound) { attachDrag(cards[0]); cards[0]._bound = true; }
     layout();
@@ -236,4 +254,5 @@
       tip.hidden = true; try { localStorage.setItem("dm-tip", "1"); } catch (e) { /* ок */ }
     });
   })();
+  window.addEventListener("resize", () => cards.forEach(c => c._fit && c._fit()));
 })();

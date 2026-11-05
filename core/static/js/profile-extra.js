@@ -1,9 +1,11 @@
-/* Профиль: видео анкеты, оформление, музыка, скрытие из поиска, достижения. */
+/* Редактирование профиля: видео анкеты, цвет карточки, статус, музыка. */
 (async function () {
   const $ = id => document.getElementById(id);
   const video = $("my-video"), file = $("video-file"), rm = $("video-remove"), vErr = $("video-err");
-  const form = $("style-form"), accent = $("accent"), hidden = $("hidden");
-  const PALETTE = ["#ff5c8a", "#4b3bff", "#14a36f", "#ff9f1c", "#00a6d6", "#c93a52", "#8e44ad", "#222222"];
+  const form = $("style-form"), accent = $("accent");
+  const PALETTE = [["#c1473f", "Алый"], ["#e0773a", "Апельсин"], ["#d9a21b", "Золото"], ["#8a9a3a", "Олива"], ["#2e9e6a", "Изумруд"], ["#1a9b9b", "Бирюза"],
+    ["#1aa7c9", "Небо"], ["#3c6fd1", "Синий"], ["#5b4bd6", "Индиго"], ["#8e44ad", "Аметист"], ["#c2468f", "Малина"], ["#ff5c8a", "Розовый"],
+    ["#8a5a44", "Какао"], ["#6b7280", "Графит"], ["#222222", "Чёрный"], ["#d9a0a5", "Пыльная роза"]];
   let hasAccent = false;
 
   function setVideo(url) {
@@ -12,36 +14,23 @@
     $("video-pick-text").textContent = url ? "Заменить видео" : "Загрузить видео";
   }
 
-  PALETTE.forEach(c => {
-    const b = DM.el("button", "swatch"); b.type = "button"; b.style.background = c; b.setAttribute("aria-label", "Цвет " + c);
-    b.addEventListener("click", () => { accent.value = c; hasAccent = true; });
-    $("swatches").appendChild(b);
+  const swatchBtns = [];
+  function markSwatch() { swatchBtns.forEach(([b, c]) => b.setAttribute("aria-pressed", String(hasAccent && accent.value.toLowerCase() === c))); }
+  PALETTE.forEach(([c, name]) => {
+    const b = DM.el("button", "swatch"); b.type = "button"; b.style.background = c; b.title = name; b.setAttribute("aria-label", "Цвет: " + name);
+    b.addEventListener("click", () => { accent.value = c; hasAccent = true; markSwatch(); });
+    $("swatches").appendChild(b); swatchBtns.push([b, c]);
   });
-  accent.addEventListener("input", () => { hasAccent = true; });
-  $("accent-clear").addEventListener("click", () => { hasAccent = false; accent.value = "#ff5c8a"; });
-
-  async function loadAchievements() {
-    try {
-      const { achievements } = await DM.api("/api/achievements/");
-      const list = $("achv-list"); list.textContent = "";
-      achievements.forEach(a => {
-        const d = DM.el("div", "achv-item" + (a.earned ? "" : " off"));
-        const ic = DM.el("span", "achv-ic"); ic.appendChild(DM.icon(a.icon));
-        d.appendChild(ic); d.appendChild(DM.el("strong", "", a.title)); d.appendChild(DM.el("small", "", a.desc));
-        list.appendChild(d);
-      });
-      $("achv-summary").textContent = "Получено: " + achievements.filter(a => a.earned).length + " из " + achievements.length;
-    } catch (e) { DM.toast(e.message, "error"); }
-  }
+  accent.addEventListener("input", () => { hasAccent = true; markSwatch(); });
+  $("accent-clear").addEventListener("click", () => { hasAccent = false; accent.value = "#c1473f"; markSwatch(); });
 
   try {
     const { user } = await DM.api("/api/me/");
     setVideo(user.video_url);
     hasAccent = !!user.accent; if (user.accent) accent.value = user.accent;
     $("status").value = user.status || ""; $("music_title").value = user.music_title || ""; $("music_url").value = user.music_url || "";
-    hidden.checked = !!user.hidden;
+    markSwatch();
   } catch (e) { DM.toast(e.message, "error"); }
-  loadAchievements();
 
   file.addEventListener("change", async () => {
     const f = file.files[0]; file.value = ""; vErr.textContent = "";
@@ -52,7 +41,7 @@
     $("video-pick-text").textContent = "Загружаем…";
     try {
       const { user } = await DM.api("/api/me/video/", { method: "POST", form: fd });
-      setVideo(user.video_url); DM.toast("Видео добавлено"); loadAchievements();
+      setVideo(user.video_url); DM.toast("Видео добавлено");
     } catch (e) { vErr.textContent = (e.fields && e.fields.video) || e.message; setVideo(video.getAttribute("src") || ""); }
   });
   rm.addEventListener("click", async () => {
@@ -66,42 +55,7 @@
     const json = { accent: hasAccent ? accent.value : "", status: $("status").value, music_title: $("music_title").value, music_url: $("music_url").value };
     try {
       await DM.api("/api/me/settings/", { method: "POST", json });
-      DM.showErrors(form, {}, ""); DM.toast("Оформление сохранено"); loadAchievements();
+      DM.showErrors(form, {}, ""); DM.toast("Оформление сохранено");
     } catch (e) { DM.showErrors(form, e.fields, Object.keys(e.fields).length ? "Исправьте отмеченные поля" : e.message); }
   });
-
-  hidden.addEventListener("change", async () => {
-    try {
-      await DM.api("/api/me/settings/", { method: "POST", json: { hidden: hidden.checked } });
-      DM.toast(hidden.checked ? "Вас не видно в поиске" : "Вы снова в поиске");
-    } catch (e) { hidden.checked = !hidden.checked; DM.toast(e.message, "error"); }
-  });
-
-  /* скрыть статус «в сети» */
-  const hideOnline = $("hide-online");
-  DM.api("/api/me/").then(({ user }) => { hideOnline.checked = !!user.hide_online; }).catch(() => { /* форма профиля уже показала ошибку */ });
-  hideOnline.addEventListener("change", async () => {
-    try {
-      await DM.api("/api/me/settings/", { method: "POST", json: { hide_online: hideOnline.checked } });
-      DM.toast(hideOnline.checked ? "Статус «в сети» скрыт" : "Статус «в сети» снова виден");
-    } catch (e) { hideOnline.checked = !hideOnline.checked; DM.toast(e.message, "error"); }
-  });
-
-  /* чёрный список */
-  const bl = $("blocked-list"), blEmpty = $("blocked-empty");
-  function drawBlocked(items) {
-    bl.textContent = ""; blEmpty.hidden = items.length > 0;
-    items.forEach(b => {
-      const row = DM.el("div", "blocked-item");
-      const img = DM.el("img", "avatar"); img.src = b.photo_url; img.alt = ""; img.style.width = img.style.height = "40px";
-      const un = DM.el("button", "btn ghost sm", "Разблокировать"); un.type = "button";
-      un.addEventListener("click", async () => {
-        un.disabled = true;
-        try { drawBlocked((await DM.api("/api/blocks/" + b.uid + "/", { method: "DELETE" })).blocked); DM.toast("«" + b.name + "» убран из чёрного списка"); }
-        catch (e) { DM.toast(e.message, "error"); un.disabled = false; }
-      });
-      row.append(img, DM.el("strong", "", b.name), un); bl.appendChild(row);
-    });
-  }
-  DM.api("/api/blocks/").then(r => drawBlocked(r.blocked)).catch(e => DM.toast(e.message, "error"));
 })();

@@ -63,7 +63,8 @@
     return n;
   }
 
-  const here = ({ chat: "matches" })[location.pathname.split("/")[1]] || location.pathname.split("/")[1];
+  const first = location.pathname.split("/")[1];
+  const here = document.body.dataset.nav || ({ chat: "matches", profile: "profile", settings: "profile" })[first] || first;
   document.querySelectorAll("[data-nav]").forEach(a => { if (a.dataset.nav === here) a.classList.add("active"); });
   const out = document.getElementById("logout-btn");
   if (out) out.addEventListener("click", async () => {
@@ -160,4 +161,59 @@
     catch (e) { toast(e.message, "error"); return false; }
   }
   Object.assign(window.DM, { art, roman, ageText, lastSeen, dateText, reportDialog, blockUser });
+})();
+
+/* ---- встроенный плеер для любимой песни ---- */
+(function () {
+  const { el, icon } = window.DM;
+
+  /* Строим адрес плеера САМИ из разобранной ссылки и только для известных сервисов: чужой адрес в iframe не попадает. */
+  function embedFor(raw) {
+    let u;
+    try { u = new URL(raw); } catch (e) { return null; }
+    if (!/^https?:$/.test(u.protocol)) return null;
+    const host = u.hostname.replace(/^(www|m)\./, "");
+    let m;
+    if (/^music\.yandex\.(ru|com|by|kz|uz)$/.test(host) && (m = u.pathname.match(/^\/album\/(\d+)\/track\/(\d+)/)))
+      return { kind: "iframe", src: "https://music.yandex.ru/iframe/#track/" + m[2] + "/" + m[1], height: 120, title: "Яндекс Музыка" };
+    if (host === "youtu.be" && (m = u.pathname.match(/^\/([\w-]{11})/)))
+      return { kind: "iframe", src: "https://www.youtube-nocookie.com/embed/" + m[1], height: 240, title: "YouTube" };
+    if ((host === "youtube.com" || host === "music.youtube.com") && /^[\w-]{11}$/.test(u.searchParams.get("v") || ""))
+      return { kind: "iframe", src: "https://www.youtube-nocookie.com/embed/" + u.searchParams.get("v"), height: 240, title: "YouTube" };
+    if (host === "open.spotify.com" && (m = u.pathname.match(/^\/(?:intl-[a-z]+\/)?(track|album|playlist|episode)\/([A-Za-z0-9]{22})/)))
+      return { kind: "iframe", src: "https://open.spotify.com/embed/" + m[1] + "/" + m[2], height: m[1] === "track" || m[1] === "episode" ? 152 : 352, title: "Spotify" };
+    if (host === "soundcloud.com" && u.pathname.length > 1)
+      return { kind: "iframe", src: "https://w.soundcloud.com/player/?auto_play=false&url=" + encodeURIComponent(u.href), height: 166, title: "SoundCloud" };
+    if (/\.(mp3|ogg|oga|wav|m4a|aac)$/i.test(u.pathname)) return { kind: "audio", src: u.href, title: "Аудиофайл" };
+    return null;
+  }
+
+  function openPlayer(title, url) {
+    const embed = url ? embedFor(url) : null;
+    const back = el("div", "modal"), box = el("div", "dialog player");
+    box.setAttribute("role", "dialog"); box.setAttribute("aria-modal", "true"); box.setAttribute("aria-label", "Плеер: " + title);
+    const h = el("h2"); h.appendChild(icon("music")); h.appendChild(document.createTextNode(" " + title)); box.appendChild(h);
+    if (embed && embed.kind === "iframe") {
+      const f = el("iframe"); f.src = embed.src; f.height = embed.height; f.title = title + " (" + embed.title + ")"; f.loading = "lazy";
+      f.setAttribute("allow", "autoplay; encrypted-media; clipboard-write"); f.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+      f.setAttribute("sandbox", "allow-scripts allow-same-origin allow-popups allow-presentation"); f.className = "player-frame"; box.appendChild(f);
+      box.appendChild(el("p", "hint", "Если плеер пустой или играет только отрывок, откройте трек на сайте сервиса."));
+    } else if (embed && embed.kind === "audio") {
+      const a = el("audio"); a.src = embed.src; a.controls = true; a.autoplay = true; a.preload = "none"; a.className = "player-audio"; box.appendChild(a);
+    } else {
+      box.appendChild(el("p", "muted", url ? "Для этой ссылки встроенный плеер недоступен." : "Ссылка на трек не указана."));
+    }
+    const row = el("div", "row");
+    if (url && /^https?:\/\//i.test(url)) {
+      const open = el("a", "btn ghost sm", "Открыть на сайте"); open.href = url; open.target = "_blank"; open.rel = "noopener noreferrer nofollow"; row.appendChild(open);
+    }
+    const close = el("button", "btn sm", "Закрыть"); close.type = "button"; row.appendChild(close);
+    box.appendChild(row); back.appendChild(box); document.body.appendChild(back);
+    const stop = () => { back.remove(); document.removeEventListener("keydown", onKey); };
+    const onKey = e => { if (e.key === "Escape") stop(); };
+    document.addEventListener("keydown", onKey);
+    back.addEventListener("click", e => { if (e.target === back) stop(); });
+    close.addEventListener("click", stop); close.focus();
+  }
+  Object.assign(window.DM, { embedFor, openPlayer });
 })();

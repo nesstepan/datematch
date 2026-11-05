@@ -31,15 +31,4 @@
     } finally { btn.disabled = false; btn.textContent = "Сохранить"; }
   });
 
-  const del = document.getElementById("delete-form");
-  del.addEventListener("submit", async ev => {
-    ev.preventDefault();
-    const password = document.getElementById("del-password").value;
-    if (!password) { DM.showErrors(del, { password: "Введите пароль" }, ""); return; }
-    if (!confirm("Удалить аккаунт навсегда? Это нельзя отменить.")) return;
-    try {
-      await DM.api("/api/me/", { method: "DELETE", json: { password } });
-      location.href = "/";
-    } catch (e) { DM.showErrors(del, e.fields, e.message); }
-  });
 })();

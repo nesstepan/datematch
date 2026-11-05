@@ -19,7 +19,7 @@ DEBUG = env_bool("DJANGO_DEBUG", False)
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
 if not SECRET_KEY:
-    if os.environ.get("RENDER"):
+    if os.environ.get("RENDER") or os.environ.get("RAILWAY_ENVIRONMENT"):
         raise ImproperlyConfigured("Задайте переменную окружения DJANGO_SECRET_KEY")
     SECRET_KEY = "dev-only-insecure-key-change-me"
 
@@ -30,6 +30,15 @@ _render_host = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
 if _render_host:
     ALLOWED_HOSTS.append(_render_host)
     CSRF_TRUSTED_ORIGINS.append(f"https://{_render_host}")
+
+# Railway: адрес сайта приходит в переменной RAILWAY_PUBLIC_DOMAIN, а проверку «жив ли сайт» делает
+# служебный хост healthcheck.railway.app — его тоже нужно разрешить, иначе проверка не пройдёт.
+_railway_host = os.environ.get("RAILWAY_PUBLIC_DOMAIN")
+if _railway_host:
+    ALLOWED_HOSTS += [_railway_host, "healthcheck.railway.app"]
+    CSRF_TRUSTED_ORIGINS.append(f"https://{_railway_host}")
+# Свой домен: DJANGO_ALLOWED_HOSTS="site.ru,www.site.ru" и DJANGO_CSRF_ORIGINS="https://site.ru,https://www.site.ru"
+CSRF_TRUSTED_ORIGINS += [o.strip() for o in os.environ.get("DJANGO_CSRF_ORIGINS", "").split(",") if o.strip()]
 
 INSTALLED_APPS = [
     "django.contrib.staticfiles",

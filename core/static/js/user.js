@@ -8,23 +8,6 @@
 
   function fact(icon, text) { const s = DM.el("span"); s.appendChild(DM.icon(icon)); s.appendChild(document.createTextNode(text)); return s; }
 
-  function postEl(p, canDelete) {
-    const d = DM.el("article", "post");
-    if (p.text) d.appendChild(DM.el("p", "", p.text));
-    if (p.image_url) { const i = DM.el("img"); i.src = p.image_url; i.alt = "Фото к посту"; i.loading = "lazy"; d.appendChild(i); }
-    d.appendChild(DM.el("time", "", DM.dateText(p.created_at)));
-    if (canDelete) {
-      const del = DM.el("button", "link-btn danger del"); del.type = "button"; del.setAttribute("aria-label", "Удалить пост"); del.appendChild(DM.icon("trash"));
-      del.addEventListener("click", async () => {
-        if (!confirm("Удалить этот пост?")) return;
-        try { await DM.api("/api/me/posts/" + p.id + "/", { method: "DELETE" }); d.remove(); }
-        catch (e) { DM.toast(e.message, "error"); }
-      });
-      d.appendChild(del);
-    }
-    return d;
-  }
-
   function render(data) {
     const p = data.profile, rel = data.relation;
     body.textContent = "";
@@ -46,9 +29,9 @@
     if (seen) { const s = DM.el("span"); s.appendChild(DM.el("span", "online-dot" + (p.online ? "" : " off"))); s.appendChild(document.createTextNode(seen)); facts.appendChild(s); }
     if (p.goal_title) facts.appendChild(fact("target", p.goal_title));
     if (p.music_title) {
-      const href = safeUrl(p.music_url);
-      if (href) { const a = DM.el("a"); a.href = href; a.target = "_blank"; a.rel = "noopener noreferrer nofollow"; a.appendChild(DM.icon("music")); a.appendChild(document.createTextNode(" " + p.music_title)); facts.appendChild(a); }
-      else facts.appendChild(fact("music", p.music_title));
+      const b = DM.el("button", "link-btn"); b.type = "button"; b.setAttribute("aria-label", "Слушать: " + p.music_title);
+      b.appendChild(DM.icon("music")); b.appendChild(document.createTextNode(p.music_title));
+      b.addEventListener("click", () => DM.openPlayer(p.music_title, p.music_url)); facts.appendChild(b);
     }
     side.appendChild(facts);
     if (p.bio) side.appendChild(DM.el("p", "", p.bio));
@@ -59,8 +42,9 @@
 
     const actions = DM.el("div", "profile-actions");
     if (isMe) {
-      const edit = DM.el("a", "btn ghost sm"); edit.href = "/profile/"; edit.appendChild(DM.icon("pen")); edit.appendChild(document.createTextNode("Редактировать анкету"));
-      actions.appendChild(edit);
+      const edit = DM.el("a", "btn sm"); edit.href = "/profile/"; edit.appendChild(DM.icon("pen")); edit.appendChild(document.createTextNode("Редактировать профиль"));
+      const set = DM.el("a", "btn ghost sm"); set.href = "/settings/"; set.appendChild(DM.icon("sliders")); set.appendChild(document.createTextNode("Настройки"));
+      actions.append(edit, set); showAchievements();
     } else {
       if (p.video_url) {
         const v = DM.el("button", "btn ghost sm"); v.type = "button"; v.appendChild(DM.icon("play", "fill")); v.appendChild(document.createTextNode("Смотреть видео"));
@@ -91,39 +75,25 @@
 
     const wall = DM.el("section"); wall.appendChild(DM.el("h2", "", isMe ? "Мои посты" : "Посты"));
     const posts = DM.el("div", "posts");
-    if (isMe) wall.appendChild(composer(posts));
+    if (isMe) wall.appendChild(DMPeople.composer(post => { const e = posts.querySelector(".muted"); if (e) e.remove(); posts.prepend(DMPeople.postEl(post, { canDelete: true })); }));
     wall.appendChild(posts);
-    data.posts.forEach(x => posts.appendChild(postEl(x, isMe)));
+    data.posts.forEach(x => posts.appendChild(DMPeople.postEl(x, { canDelete: isMe })));
     if (!data.posts.length) posts.appendChild(DM.el("p", "muted", isMe ? "Пока пусто. Напишите первый пост, чтобы вас можно было узнать лучше." : "Пока нет постов."));
     body.appendChild(wall);
   }
 
-  function composer(posts) {
-    const form = DM.el("form", "panel composer-post form"); form.noValidate = true;
-    const ta = DM.el("textarea"); ta.maxLength = 1000; ta.placeholder = "О чём хотите рассказать?"; ta.setAttribute("aria-label", "Текст поста");
-    const file = DM.el("input"); file.type = "file"; file.accept = "image/jpeg,image/png,image/webp,image/gif"; file.hidden = true;
-    const pick = DM.el("button", "btn ghost sm"); pick.type = "button"; pick.appendChild(DM.icon("image")); const pickText = document.createTextNode("Добавить фото"); pick.appendChild(pickText);
-    pick.addEventListener("click", () => file.click());
-    file.addEventListener("change", () => { pickText.nodeValue = file.files[0] ? "Фото: " + file.files[0].name.slice(0, 18) : "Добавить фото"; });
-    const send = DM.el("button", "btn sm"); send.type = "submit"; send.appendChild(DM.icon("pen")); send.appendChild(document.createTextNode("Опубликовать"));
-    const row = DM.el("div", "row"); row.append(pick, send);
-    const err = DM.el("p", "err"); err.setAttribute("role", "alert");
-    form.append(ta, file, row, err);
-    form.addEventListener("submit", async ev => {
-      ev.preventDefault(); err.textContent = "";
-      const text = ta.value.trim(), f = file.files[0];
-      if (!text && !f) { err.textContent = "Напишите что-нибудь или прикрепите фото"; return; }
-      if (f && f.size > 5 * 1024 * 1024) { err.textContent = "Файл больше 5 МБ"; return; }
-      const fd = new FormData(); fd.append("text", text); if (f) fd.append("photo", f);
-      send.disabled = true;
-      try {
-        const { post } = await DM.api("/api/me/posts/", { method: "POST", form: fd });
-        const empty = posts.querySelector(".muted"); if (empty) empty.remove();
-        posts.prepend(postEl(post, true)); ta.value = ""; file.value = ""; pickText.nodeValue = "Добавить фото";
-      } catch (e) { err.textContent = (e.fields && (e.fields.text || e.fields.photo)) || e.message; }
-      finally { send.disabled = false; }
-    });
-    return form;
+  async function showAchievements() {
+    const box = document.getElementById("achievements"), list = document.getElementById("achv-list");
+    try {
+      const { achievements } = await DM.api("/api/achievements/");
+      list.textContent = "";
+      achievements.forEach(a => {
+        const d = DM.el("div", "achv-item" + (a.earned ? "" : " off")), ic = DM.el("span", "achv-ic"); ic.appendChild(DM.icon(a.icon));
+        d.append(ic, DM.el("strong", "", a.title), DM.el("small", "", a.desc)); list.appendChild(d);
+      });
+      document.getElementById("achv-summary").textContent = "Получено: " + achievements.filter(a => a.earned).length + " из " + achievements.length;
+      box.hidden = false;
+    } catch (e) { /* достижения не критичны */ }
   }
 
   async function load() {

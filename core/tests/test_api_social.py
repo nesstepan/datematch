@@ -26,8 +26,23 @@ class SocialApiTests(SimpleTestCase):
         return self.swipe(self.b, self.ua)["match_id"]
 
     # --- страницы ---
+    def test_landing_is_open_to_everyone(self):
+        self.assertEqual(Client().get("/").status_code, 200)  # гость
+        page = self.a.get("/")  # вошедший пользователь тоже видит главную, без перенаправления
+        self.assertEqual(page.status_code, 200)
+        self.assertIn("Открыть ленту", page.content.decode())
+        self.assertEqual(self.a.get("/login/").status_code, 302)  # а вход и регистрация ему не нужны
+
+    def test_posts_feed_of_pairs(self):
+        self.b.post("/api/me/posts/", {"text": "пост Бориса"})
+        self.assertEqual([p["text"] for p in self.a.get("/api/posts/").json()["posts"]], [])
+        self.pair()
+        got = self.a.get("/api/posts/").json()["posts"]
+        self.assertEqual([(p["text"], p["author"]["name"]) for p in got], [("пост Бориса", "Борис")])
+        self.assertEqual(Client().get("/api/posts/").status_code, 401)
+
     def test_new_pages_need_login_and_render(self):
-        for url in ("/likes/", "/search/", f"/u/{self.ub['uid']}/"):
+        for url in ("/likes/", "/search/", "/posts/", "/settings/", f"/u/{self.ub['uid']}/"):
             self.assertEqual(Client().get(url).status_code, 302, url)
             self.assertEqual(self.a.get(url).status_code, 200, url)
 

@@ -6,7 +6,8 @@
     <span class="eyebrow">{% icon "sparkles" %}Знакомства по старинке и по-новому</span>
     <h1>Стрела Амура <em>не промахивается</em>, когда симпатия взаимна</h1>
     <p class="lead">Листайте анкеты, как карты Таро: нравится или нет. Чат откроется только тогда, когда выбор совпал. Никаких лишних сообщений от тех, кто вам не интересен.</p>
-    <p class="row"><a class="btn" href="/register/">Создать анкету</a> <a class="btn ghost" href="/login/">Войти</a></p>
+    {% if me %}<p class="row"><a class="btn" href="/discover/">Открыть ленту</a> <a class="btn ghost" href="/likes/">Кто меня лайкнул</a></p>
+    {% else %}<p class="row"><a class="btn" href="/register/">Создать анкету</a> <a class="btn ghost" href="/login/">Войти</a></p>{% endif %}
   </div>
   <div class="hero-art" aria-hidden="true">
     <div class="tarot">
@@ -49,7 +50,8 @@
 <section class="cta-band">
   {% art "cupid" "art" %}
   <h2>Готовы вытянуть <em>свою карту</em>?</h2>
-  <p class="muted">Регистрация занимает около минуты.</p>
-  <a class="btn" href="/register/">Создать анкету</a>
+  {% if me %}<p class="muted">Ваша анкета уже ждёт других.</p>
+  <a class="btn" href="/discover/">Открыть ленту</a>{% else %}<p class="muted">Регистрация занимает около минуты.</p>
+  <a class="btn" href="/register/">Создать анкету</a>{% endif %}
 </section>
 {% endblock %}

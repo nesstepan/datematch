@@ -488,3 +488,8 @@ def reports(request):
 def typing(request, match_id):
     services.set_typing(match_id, request.me["id"])
     return {"ok": True}
+
+
+@api_view(["GET"])
+def posts_feed(request):
+    return {"posts": services.matches_posts(request.me["id"])}

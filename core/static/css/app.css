@@ -347,3 +347,89 @@ body.page-chat .shell { padding-bottom: 12px; padding-top: 20px; }
 .panel .corner-art { position: absolute; width: 82px; top: -28px; right: 18px; transform: rotate(8deg); }
 .form-art-row { position: relative; }
 .empty .art-cupid { width: 140px; margin: 0 auto 6px; }
+
+/* ================= версия 4: зерно, карточки, адаптив ================= */
+/* защита от «уезжающей» страницы: длинные слова без пробелов не должны растягивать вёрстку */
+html, body { max-width: 100%; }
+.shell, .panel, .post, .match-item, .profile-hero > *, .person, .field, .report, .blocked-item { min-width: 0; }
+p, h1, h2, h3, .bio, .status, .status-line, .post p, .facts span, .chip, .person-meta, .match-item .last, .msg { overflow-wrap: anywhere; word-break: break-word; }
+
+/* пёстрое зерно бумаги и печати */
+body { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012 .35' numOctaves='2' seed='9'/%3E%3CfeColorMatrix values='0 0 0 0 .4  0 0 0 0 .3  0 0 0 0 .2  0 0 0 .2 -.06'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23f%29'/%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .30  0 0 0 0 .24  0 0 0 0 .18  0 0 0 .55 -.12'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23n%29'/%3E%3C/svg%3E"), var(--paper); background-blend-mode: multiply, normal, normal; }
+body::after { content: ""; position: fixed; inset: 0; z-index: 200; pointer-events: none; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .30  0 0 0 0 .24  0 0 0 0 .18  0 0 0 .55 -.12'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23n%29'/%3E%3C/svg%3E"); opacity: .42; mix-blend-mode: multiply; }
+:root[data-theme="dark"] body::after { mix-blend-mode: screen; opacity: .16; }
+.panel, .post, .cta-band { box-shadow: 5px 5px 0 var(--line), inset 0 0 36px rgba(120, 90, 50, .07); }
+.tarot-frame img, .card-photo img, .match-photos img { filter: sepia(.16) contrast(1.05) saturate(.92); }
+.card-photo::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .30  0 0 0 0 .24  0 0 0 0 .18  0 0 0 .55 -.12'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23n%29'/%3E%3C/svg%3E"); opacity: .5; mix-blend-mode: multiply; }
+
+/* карточка в ленте: фото, подпись-имя и отдельный прямоугольник с описанием */
+.card { padding: 8px; }
+.card .tarot-frame { display: flex; flex-direction: column; background: var(--paper); }
+.card-photo { position: relative; flex: 1 1 auto; min-height: 90px; overflow: hidden; background: var(--sage); transition: height .25s; }
+.card-photo img.cover { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.card .tarot-title { position: static; flex: none; border-top: 1.5px solid var(--ink); border-bottom: 1.5px solid var(--ink); }
+.card-body { flex: none; max-height: 44%; overflow-y: auto; padding: 10px 12px 12px; color: var(--ink); background: color-mix(in srgb, var(--accent, var(--paper-2)) 12%, var(--card)); -webkit-overflow-scrolling: touch; }
+.card.expanded .card-photo { flex: none; height: 24%; } .card.expanded .card-body { max-height: none; flex: 1 1 auto; }
+.card .status { margin: 0 0 4px; font: 400 1.2rem/1.2 var(--hand); color: var(--accent, var(--rose)); }
+.card .bio { margin: 0 0 4px; font-size: .9rem; line-height: 1.45; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.card.expanded .bio { display: block; overflow: visible; -webkit-line-clamp: unset; }
+.card .more { padding: 2px 0; margin: 0 0 6px; font-size: .78rem; color: var(--rose); text-decoration: underline; text-underline-offset: 3px; } .card .more:hover { background: none; }
+.card .extras { margin: 6px 0 8px; gap: 6px; }
+.card .extras span, .card .extras button, .card .extras a { background: var(--card); color: var(--ink); border: 1.5px solid var(--ink); font: 600 .74rem var(--body); padding: 3px 11px; }
+.card .extras button.video { background: var(--accent, var(--rose)); border-color: var(--ink); color: #fff; }
+.card .extras button.music:hover, .card .extras button.video:hover { transform: translateY(-1px); }
+.card .tags { gap: 5px; } .card .tags span { background: var(--paper); color: var(--ink); border: 1px solid var(--line); font-size: .74rem; padding: 1px 10px; }
+.card .badges { top: 42px; } .card .presence-tag { top: 42px; } .card .stamp { top: 68px; }
+.card .tarot-title h2 { font-size: .92rem; }
+
+/* палитра цветов карточки */
+.swatch-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; max-width: 440px; }
+.swatch-grid .swatch { width: 100%; height: auto; aspect-ratio: 1; }
+.swatch[aria-pressed="true"] { outline: 3px solid var(--ink); outline-offset: 2px; }
+
+/* плеер песни */
+.dialog.player { width: min(100%, 520px); } .dialog.player h2 { font-size: 1.15rem; display: flex; align-items: center; gap: 6px; }
+.player-frame { width: 100%; border: 2px solid var(--ink); background: #000; display: block; margin: 6px 0; } .player-audio { width: 100%; margin: 6px 0; }
+.card .extras button.music, .facts button.link-btn { max-width: 100%; }
+
+/* лента постов */
+.post-author { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; text-decoration: none; color: var(--ink); }
+.post-author .avatar { width: 40px; height: 40px; } .post-author strong { display: block; font: 700 1rem var(--serif); } .post-author time { font-size: .76rem; color: var(--ink-soft); }
+.post-img { max-width: 100%; max-height: 420px; border: 1.5px solid var(--ink); display: block; margin: 8px 0; filter: sepia(.12) contrast(1.04); }
+.posts .post { margin: 0; } #composer { margin-bottom: 18px; }
+.nav a .dot { margin-left: 2px; }
+a.icon-btn.active { background: var(--ink); color: var(--on-ink); }
+
+/* ============ телефон: всё компактнее ============ */
+@media (max-width: 720px) {
+  :root { --top: 50px; --bottom: 56px; }
+  body { font-size: 14.5px; line-height: 1.5; }
+  h1 { font-size: clamp(1.45rem, 6.4vw, 1.9rem); } h2 { font-size: 1.15rem; } .page-head { margin-bottom: 14px; }
+  .topbar { padding: 0 8px; gap: 2px; } .topbar::before { border-bottom-width: 2px; }
+  .brand { font-size: 1.05rem; gap: 5px; } .brand .mark { width: 26px; height: 26px; }
+  .icon-btn { min-height: 38px; min-width: 38px; font-size: 1.05rem; } .tools { margin-left: auto; }
+  .nav:not(.guest) { height: calc(var(--bottom) + env(safe-area-inset-bottom)); padding: 4px 2px env(safe-area-inset-bottom); border-top-width: 2px; }
+  .nav:not(.guest) a { font-size: .56rem; gap: 1px; padding: 4px 1px; letter-spacing: .02em; } .nav:not(.guest) a .ic { font-size: 1.2rem; }
+  .nav .dot { top: -1px; right: 12%; min-width: 15px; height: 15px; font-size: .58rem; line-height: 15px; padding: 0 3px; }
+  .shell { padding: 12px 12px 28px; } .panel { padding: 16px 14px; box-shadow: 3px 3px 0 var(--line); } .panel + .panel { margin-top: 16px; }
+  .btn { min-height: 44px; padding: 9px 18px; font-size: .76rem; letter-spacing: .06em; } .btn.sm { min-height: 36px; padding: 5px 13px; font-size: .68rem; }
+  input, select, textarea { min-height: 44px; padding: 9px 12px; font-size: 16px; } /* 16px — чтобы iPhone не приближал страницу при вводе */
+  .field label, .field .label { font-size: .68rem; }
+  .discover-head h1 { font-size: 1.45rem; } .tip { font-size: .84rem; padding: 10px 12px; }
+  .deck { height: calc(100dvh - var(--top) - var(--bottom) - 190px); min-height: 380px; max-height: 620px; }
+  .card { padding: 6px; border-width: 2px; } .card .tarot-frame { inset: 6px; }
+  .tarot-num { font-size: .78rem; padding: 0 10px; top: 8px; } .tarot-title { padding: 6px 6px; } .tarot-title h2, .card .tarot-title h2 { font-size: .8rem; letter-spacing: .15em; }
+  .card-body { padding: 8px 10px 10px; max-height: 46%; } .card .bio { font-size: .84rem; } .card .status { font-size: 1.05rem; }
+  .card .extras span, .card .extras button { font-size: .68rem; padding: 2px 9px; } .card .tags span { font-size: .68rem; padding: 0 8px; }
+  .card .badges span { width: 26px; height: 26px; } .card .presence-tag { font-size: .6rem; padding: 0 7px; }
+  .actions { gap: 26px; } .round { width: 54px; height: 54px; font-size: 1.35rem; } .act.like .round { width: 62px; height: 62px; font-size: 1.5rem; } .act { font-size: .62rem; gap: 5px; }
+  .kbd-hint { display: none; }
+  .hero { padding-bottom: 44px; gap: 30px; } .hero-art { height: 360px; width: 250px; } .lead { font-size: .98rem; }
+  .dark-band { padding: 76px 0 48px; } .arcana { gap: 14px; grid-template-columns: 1fr; } .perks { margin: 36px 0 30px; gap: 14px; } .cta-band { padding: 26px 16px; }
+  .person-grid { grid-template-columns: repeat(2, 1fr); gap: 14px 10px; } .person .tarot-title h2 { font-size: .66rem; letter-spacing: .08em; } .person-meta { font-size: .76rem; }
+  .profile-hero { gap: 18px; } .profile-hero .tarot { width: min(78%, 250px); } .status-line { font-size: 1.25rem; } .facts { font-size: .84rem; }
+  .swatch-grid { grid-template-columns: repeat(6, 1fr); }
+  .chat { height: calc(100dvh - var(--top) - var(--bottom) - 14px); } .msg { font-size: .92rem; padding: 7px 12px; } .gift-panel { bottom: 62px; }
+  .match-item { padding: 10px 12px; gap: 10px; } .avatar { width: 46px; height: 46px; } .achv { grid-template-columns: repeat(2, 1fr); gap: 8px; } .stats { gap: 8px; }
+  .dialog { padding: 18px 14px; } .toast { font-size: .84rem; padding: 10px 12px; }
+}

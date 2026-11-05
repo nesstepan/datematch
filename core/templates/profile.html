@@ -1,13 +1,12 @@
 {% extends "base.html" %}
 {% load static dm %}
-{% block title %}Профиль — DateMatch{% endblock %}
+{% block title %}Редактирование профиля — DateMatch{% endblock %}
 {% block content %}
 <section class="narrow">
-  <div class="page-head"><h1>Личный <em>кабинет</em></h1><p id="who">{{ me.email }}</p>
-    <p class="row" style="margin-top:12px"><a class="btn ghost sm" href="/u/{{ me.id }}/">{% icon "user" %}Моя страница и посты</a></p></div>
-  <nav class="subnav" aria-label="Разделы профиля">
-    <a href="#basic">Основное</a><a href="#video-section">Видео</a><a href="#style">Оформление</a>
-    <a href="#privacy">Приватность</a><a href="#blacklist">Чёрный список</a><a href="#achievements">Достижения</a><a href="#danger">Удаление</a>
+  <div class="page-head"><h1>Редактирование <em>профиля</em></h1><p id="who">{{ me.email }}</p>
+    <p class="row" style="margin-top:12px"><a class="btn ghost sm" href="/u/{{ me.id }}/">{% icon "user" %}Моя страница</a><a class="btn ghost sm" href="/settings/">{% icon "sliders" %}Настройки</a></p></div>
+  <nav class="subnav" aria-label="Разделы">
+    <a href="#basic">Основное</a><a href="#video-section">Видео</a><a href="#style">Оформление и музыка</a>
   </nav>
 
   <div class="section" id="basic"><form id="profile-form" class="panel form" novalidate enctype="multipart/form-data">
@@ -62,8 +61,8 @@
   <div class="section" id="style"><form id="style-form" class="panel form" novalidate>
     <h2>{% icon "palette" %} Оформление и музыка</h2>
     <div class="field"><label for="accent">Цвет вашей карточки</label>
-      <div class="color-row"><input id="accent" type="color" value="#ff5c8a" aria-label="Выбрать свой цвет">
-        <span id="swatches" class="color-row" aria-label="Готовые цвета"></span>
+      <div class="swatch-grid" id="swatches" role="group" aria-label="Готовые цвета"></div>
+      <div class="color-row" style="margin-top:10px"><input id="accent" type="color" value="#c1473f" aria-label="Свой цвет"><span class="hint" style="margin:0">или выберите свой цвет</span>
         <button class="link-btn" id="accent-clear" type="button">Без цвета</button></div>
       <p class="err" data-err="accent"></p></div>
     <div class="field"><label for="status">Статус</label>
@@ -71,42 +70,12 @@
     <div class="field"><label for="music_title">Любимая песня или исполнитель</label>
       <input id="music_title" maxlength="80" placeholder="Например: Кино — Группа крови"><p class="err" data-err="music_title"></p></div>
     <div class="field"><label for="music_url">Ссылка на трек (необязательно)</label>
-      <input id="music_url" type="url" maxlength="300" placeholder="https://…"><p class="err" data-err="music_url"></p></div>
+      <input id="music_url" type="url" maxlength="300" placeholder="https://music.yandex.ru/album/…/track/…">
+      <p class="hint">Яндекс Музыка, YouTube, Spotify, SoundCloud или прямая ссылка на mp3. Трек откроется во встроенном плеере.</p>
+      <p class="err" data-err="music_url"></p></div>
     <p class="err form-err" role="alert"></p>
     <button class="btn wide" type="submit">Сохранить оформление</button>
   </form></div>
-
-  <div class="section" id="privacy"><div class="panel">
-    <h2>{% icon "eye-off" %} Приватность</h2>
-    <label class="check"><input id="hidden" type="checkbox"> Скрыть мою анкету из поиска</label>
-    <p class="hint">Новые люди перестанут видеть вас в ленте и поиске. Уже созданные пары и чаты останутся.</p>
-    <label class="check"><input id="hide-online" type="checkbox"> Не показывать, что я в сети</label>
-    <p class="hint">Другие увидят вас как «не в сети», а время последнего визита не покажется.</p>
-  </div></div>
-
-  <div class="section" id="blacklist"><div class="panel">
-    <h2>{% icon "ban" %} Чёрный список</h2>
-    <p class="section-lead">Заблокированные люди не видят вас в ленте и поиске и не могут вам писать. Пара с ними удаляется.</p>
-    <div class="blocked-list" id="blocked-list"></div>
-    <p class="muted small" id="blocked-empty" hidden>Список пуст.</p>
-  </div></div>
-
-  <div class="section" id="achievements"><div class="panel">
-    <h2>{% icon "trophy" %} Достижения</h2>
-    <p class="section-lead" id="achv-summary"></p>
-    <div class="achv" id="achv-list"></div>
-  </div></div>
-
-  <div class="section danger-zone" id="danger"><div class="panel">
-    <h2>{% icon "alert" %} Удаление аккаунта</h2>
-    <p class="muted">Анкета, фото, пары и переписки удалятся без возможности восстановления.</p>
-    <form id="delete-form" class="form" novalidate>
-      <div class="field"><label for="del-password">Пароль для подтверждения</label>
-        <input id="del-password" type="password" autocomplete="current-password" required>
-        <p class="err" data-err="password"></p></div>
-      <button class="btn danger" type="submit">{% icon "trash" %}Удалить аккаунт</button>
-    </form>
-  </div></div>
 </section>
 {% endblock %}
 {% block scripts %}<script src="{% static 'js/profile-form.js' %}"></script><script src="{% static 'js/profile.js' %}"></script><script src="{% static 'js/profile-extra.js' %}"></script>{% endblock %}

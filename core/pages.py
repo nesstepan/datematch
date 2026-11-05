@@ -27,7 +27,7 @@ def _page(template, auth=True, admin=False):
             user = _me(request)
             if auth and not user:
                 return redirect("/login/")
-            if not auth and user:
+            if auth is False and user:  # вход и регистрация не нужны тем, кто уже вошёл
                 return redirect("/discover/")
             if admin and not user.get("is_admin"):
                 return render(request, "error.html", {"status": 403, "title": "Нет доступа",
@@ -40,7 +40,7 @@ def _page(template, auth=True, admin=False):
     return decorator
 
 
-@_page("landing.html", auth=False)
+@_page("landing.html", auth=None)  # главная видна всем: и гостям, и вошедшим
 def landing(request, user):
     return {}
 
@@ -67,6 +67,16 @@ def matches_page(request, user):
 
 @_page("profile.html")
 def profile_page(request, user):
+    return {}
+
+
+@_page("posts.html")
+def posts_page(request, user):
+    return {}
+
+
+@_page("settings.html")
+def settings_page(request, user):
     return {}
 
 

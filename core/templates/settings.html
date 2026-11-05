@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load static dm %}
+{% block title %}Настройки — DateMatch{% endblock %}
+{% block content %}
+<section class="narrow">
+  <div class="page-head"><h1>Личный <em>кабинет</em></h1><p>Приватность, чёрный список и аккаунт.</p>
+    <p class="row" style="margin-top:12px"><a class="btn ghost sm" href="/u/{{ me.id }}/">{% icon "user" %}Моя страница</a><a class="btn ghost sm" href="/profile/">{% icon "pen" %}Редактировать профиль</a></p></div>
+  <nav class="subnav" aria-label="Разделы"><a href="#privacy">Приватность</a><a href="#blacklist">Чёрный список</a><a href="#danger">Удаление</a></nav>
+
+  <div class="section" id="privacy"><div class="panel">
+    <h2>{% icon "eye-off" %} Приватность</h2>
+    <label class="check"><input id="hidden" type="checkbox"> Скрыть мою анкету из поиска</label>
+    <p class="hint">Новые люди перестанут видеть вас в ленте и поиске. Уже созданные пары и чаты останутся.</p>
+    <label class="check"><input id="hide-online" type="checkbox"> Не показывать, что я в сети</label>
+    <p class="hint">Другие увидят вас как «не в сети», а время последнего визита не покажется.</p>
+  </div></div>
+
+  <div class="section" id="blacklist"><div class="panel">
+    <h2>{% icon "ban" %} Чёрный список</h2>
+    <p class="section-lead">Заблокированные люди не видят вас в ленте и поиске и не могут вам писать. Пара с ними удаляется.</p>
+    <div class="blocked-list" id="blocked-list"></div>
+    <p class="muted small" id="blocked-empty" hidden>Список пуст.</p>
+  </div></div>
+
+  <div class="section danger-zone" id="danger"><div class="panel">
+    <h2>{% icon "alert" %} Удаление аккаунта</h2>
+    <p class="muted">Анкета, фото, пары и переписки удалятся без возможности восстановления.</p>
+    <form id="delete-form" class="form" novalidate>
+      <div class="field"><label for="del-password">Пароль для подтверждения</label>
+        <input id="del-password" type="password" autocomplete="current-password" required>
+        <p class="err" data-err="password"></p></div>
+      <button class="btn danger" type="submit">{% icon "trash" %}Удалить аккаунт</button>
+    </form>
+  </div></div>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/settings.js' %}"></script>{% endblock %}

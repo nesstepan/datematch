@@ -157,6 +157,36 @@ class TestPosts(SocialBase):
         self.assertEqual(store.get_store().query("media"), [])
 
 
+class TestMatchesPosts(SocialBase):
+    def test_only_pairs_and_self(self):
+        services.create_post(self.a["id"], "пост Анны")
+        services.create_post(self.b["id"], "пост Бориса")
+        services.create_post(self.c["id"], "пост Виктора")
+        self.pair()  # пара Анна-Борис
+        got = services.matches_posts(self.a["id"])
+        self.assertEqual({p["text"] for p in got}, {"пост Анны", "пост Бориса"})
+        self.assertNotIn("пост Виктора", {p["text"] for p in got})
+        self.assertEqual({p["author"]["name"]: p["author"]["mine"] for p in got}, {"Анна": True, "Борис": False})
+
+    def test_sorted_newest_first_and_limits(self):
+        self.pair()
+        for i in range(8):
+            services.create_post(self.b["id"], f"п{i}")
+        got = services.matches_posts(self.a["id"], limit=4, per_user=3)
+        self.assertEqual(len(got), 3)  # не больше per_user от одного автора
+        self.assertEqual([p["text"] for p in got], ["п7", "п6", "п5"])
+
+    def test_unmatch_and_block_hide_posts(self):
+        services.create_post(self.b["id"], "секрет")
+        mid = self.pair()
+        self.assertEqual(len(services.matches_posts(self.a["id"])), 1)
+        services.unmatch(mid, self.a["id"])
+        self.assertEqual(services.matches_posts(self.a["id"]), [])
+
+    def test_empty_without_pairs(self):
+        self.assertEqual(services.matches_posts(self.a["id"]), [])
+
+
 class TestProfileView(SocialBase):
     def test_relation_flags(self):
         v = services.profile_view(self.a["id"], self.b["id"])
