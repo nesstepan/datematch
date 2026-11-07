@@ -10,7 +10,8 @@
   matches/<id>/signals  — сигналы звонков WebRTC
   media (+ chunks)      — файлы: видео анкеты и вложения чата
   notifications         — уведомления о лайках, парах, сообщениях, звонках, достижениях
-  users/<id>/posts      — посты на странице пользователя
+  users/<id>/posts      — посты на странице пользователя (liked_by — кто поставил лайк)
+  users/<id>/posts/<id>/comments — комментарии к посту
   reports               — жалобы на пользователей (разбирает администратор)
 """
 import base64
@@ -156,6 +157,8 @@ def delete_user_cascade(uid):
         _delete_match(m["id"])
     media.delete_where("owner", uid)
     for p in st.query(f"users/{uid}/posts"):
+        for c in st.query(f"users/{uid}/posts/{p['id']}/comments"):
+            st.delete(f"users/{uid}/posts/{p['id']}/comments", c["id"])
         st.delete(f"users/{uid}/posts", p["id"])
     for r in st.query("reports", [("target_uid", "==", uid)]) + st.query("reports", [("from_uid", "==", uid)]):
         st.delete("reports", r["id"])
@@ -555,13 +558,16 @@ def search_users(uid, q="", age_min=18, age_max=99, goal="", limit=30):
 MAX_POSTS = 50
 
 
-def _post_view(p):
-    return {"id": p["id"], "text": p.get("text", ""), "created_at": p["created_at"],
-            "image_url": f"/media/{p['media_id']}/" if p.get("media_id") else ""}
+def _post_view(p, author_uid="", viewer_uid=""):
+    liked_by = p.get("liked_by", [])
+    return {"id": p["id"], "uid": author_uid, "text": p.get("text", ""), "created_at": p["created_at"],
+            "image_url": f"/media/{p['media_id']}/" if p.get("media_id") else "",
+            "likes": len(liked_by), "liked": viewer_uid in liked_by, "comments": p.get("comments_count", 0)}
 
 
-def list_posts(uid, limit=20):
-    return [_post_view(p) for p in
+def list_posts(uid, limit=20, viewer_uid=None):
+    viewer_uid = uid if viewer_uid is None else viewer_uid
+    return [_post_view(p, uid, viewer_uid) for p in
             get_store().query(f"users/{uid}/posts", order_by="created_at", descending=True, limit=limit)]
 
 
@@ -586,7 +592,7 @@ def create_post(uid, raw_text, raw_photo=None):
     pid = st.new_id()
     doc = {"text": text, "media_id": media_id, "created_at": _now()}
     st.set(path, pid, doc)
-    return _post_view({"id": pid, **doc})
+    return _post_view({"id": pid, **doc}, uid, uid)
 
 
 def delete_post(uid, post_id):
@@ -595,6 +601,8 @@ def delete_post(uid, post_id):
     if not post:
         raise ApiError("Пост не найден", 404, "not_found")
     media.delete(post.get("media_id"))
+    for c in st.query(f"{path}/{post_id}/comments"):
+        st.delete(f"{path}/{post_id}/comments", c["id"])
     st.delete(path, post_id)
 
 
@@ -607,14 +615,14 @@ def matches_posts(uid, limit=30, per_user=5):
         authors.append({"uid": o["uid"], "name": o["name"], "photo_url": o["photo_url"], "mine": False})
     items = []
     for a in authors:
-        for p in list_posts(a["uid"], per_user):
+        for p in list_posts(a["uid"], per_user, viewer_uid=uid):
             items.append({**p, "author": a})
     items.sort(key=lambda p: p["created_at"], reverse=True)
     return items[:limit]
 
 
-def profile_view(viewer_uid, target_uid):
-    """Страница пользователя: анкета, посты и отношения между вами (пара, лайки)."""
+def _relation(viewer_uid, target_uid):
+    """Кто кому кто: пара, лайки. Заодно проверяет, что страницу цели вообще можно видеть (не заблокирована, не скрыта)."""
     viewer, target = get_user(viewer_uid), get_user(target_uid)
     if not target or not target.get("is_active", True):
         raise ApiError("Анкета не найдена", 404, "not_found")
@@ -632,7 +640,98 @@ def profile_view(viewer_uid, target_uid):
                    i_passed=bool(mine and not mine.get("like")), liked_me=bool(theirs and theirs.get("like")))
         if target.get("hidden") and not (matched or rel["liked_me"] or viewer.get("is_admin")):
             raise ApiError("Анкета не найдена", 404, "not_found")  # скрытая анкета видна только парам и тем, кого лайкнули вы
-    return {"profile": public_profile(target), "relation": rel, "posts": list_posts(target_uid)}
+    return viewer, target, rel
+
+
+def profile_view(viewer_uid, target_uid):
+    """Страница пользователя: анкета, посты и отношения между вами (пара, лайки)."""
+    _, target, rel = _relation(viewer_uid, target_uid)
+    return {"profile": public_profile(target), "relation": rel, "posts": list_posts(target_uid, viewer_uid=viewer_uid)}
+
+
+# ---------- лайки и комментарии к постам ----------
+MAX_COMMENTS = 200
+MAX_POST_LIKES = 2000
+
+
+def _get_post(viewer_uid, author_uid, post_id):
+    """Пост можно оценить и прокомментировать только там, где вы вправе видеть страницу автора."""
+    viewer, author, _ = _relation(viewer_uid, author_uid)
+    post = get_store().get(f"users/{author_uid}/posts", post_id)
+    if not post:
+        raise ApiError("Пост не найден", 404, "not_found")
+    return viewer, author, post
+
+
+def like_post(viewer_uid, author_uid, post_id, like=True):
+    viewer, _, post = _get_post(viewer_uid, author_uid, post_id)
+    path = f"users/{author_uid}/posts"
+    liked_by = list(post.get("liked_by", []))
+    if like and viewer_uid not in liked_by and len(liked_by) < MAX_POST_LIKES:
+        liked_by.append(viewer_uid)
+        if viewer_uid != author_uid:
+            features.notify(author_uid, "post_like", f"{viewer['name']} оценил(а) ваш пост", key=f"{post_id}__{viewer_uid}",
+                            from_uid=viewer_uid, from_name=viewer["name"], from_photo=photo_url(viewer),
+                            data={"author_uid": author_uid, "post_id": post_id})
+    elif not like and viewer_uid in liked_by:
+        liked_by.remove(viewer_uid)
+        features.drop_notification(author_uid, "post_like", f"{post_id}__{viewer_uid}")
+    get_store().update(path, post_id, {"liked_by": liked_by})
+    return {"liked": viewer_uid in liked_by, "likes": len(liked_by)}
+
+
+def _comment_view(c, viewer_uid, author_uid, cache):
+    uid = c["author_uid"]
+    if uid not in cache:
+        cache[uid] = get_user(uid)
+    u = cache[uid]
+    who = {"uid": uid, "name": u["name"], "photo_url": photo_url(u)} if u else {"uid": "", "name": "Удалённый пользователь", "photo_url": ""}
+    mine = uid == viewer_uid
+    return {"id": c["id"], "text": c["text"], "created_at": c["created_at"], "author": who,
+            "mine": mine, "can_delete": mine or viewer_uid == author_uid}
+
+
+def list_comments(viewer_uid, author_uid, post_id):
+    _get_post(viewer_uid, author_uid, post_id)
+    docs = get_store().query(f"users/{author_uid}/posts/{post_id}/comments", order_by="created_at", limit=MAX_COMMENTS)
+    cache = {}
+    return [_comment_view(c, viewer_uid, author_uid, cache) for c in docs]
+
+
+def add_comment(viewer_uid, author_uid, post_id, raw_text):
+    try:
+        text = validators.clean_comment(raw_text)
+    except validators._Bad as exc:
+        raise ApiError(str(exc), 422, "validation_error", {"text": str(exc)})
+    viewer, _, post = _get_post(viewer_uid, author_uid, post_id)
+    count = post.get("comments_count", 0)
+    if count >= MAX_COMMENTS:
+        raise ApiError("К этому посту уже слишком много комментариев", 422, "validation_error", {"text": "Комментарии закрыты"})
+    st, path = get_store(), f"users/{author_uid}/posts"
+    cid = st.new_id()
+    doc = {"author_uid": viewer_uid, "text": text, "created_at": _now()}
+    st.set(f"{path}/{post_id}/comments", cid, doc)
+    st.update(path, post_id, {"comments_count": count + 1})
+    if viewer_uid != author_uid:
+        features.notify(author_uid, "comment", f"{viewer['name']} комментирует: {text[:70]}", key=cid, from_uid=viewer_uid,
+                        from_name=viewer["name"], from_photo=photo_url(viewer), data={"author_uid": author_uid, "post_id": post_id})
+    return {"comment": _comment_view({"id": cid, **doc}, viewer_uid, author_uid, {viewer_uid: viewer}), "comments": count + 1}
+
+
+def delete_comment(viewer_uid, author_uid, post_id, comment_id):
+    """Комментарий может удалить его автор или хозяин поста."""
+    _, _, post = _get_post(viewer_uid, author_uid, post_id)
+    st, path = get_store(), f"users/{author_uid}/posts"
+    comment = st.get(f"{path}/{post_id}/comments", comment_id)
+    if not comment:
+        raise ApiError("Комментарий не найден", 404, "not_found")
+    if comment["author_uid"] != viewer_uid and author_uid != viewer_uid:
+        raise ApiError("Удалять можно только свои комментарии или комментарии под своим постом", 403, "forbidden")
+    st.delete(f"{path}/{post_id}/comments", comment_id)
+    features.drop_notification(author_uid, "comment", comment_id)
+    count = max(0, post.get("comments_count", 0) - 1)
+    st.update(path, post_id, {"comments_count": count})
+    return {"comments": count}
 
 
 # ---------- жалобы ----------

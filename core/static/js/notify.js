@@ -10,9 +10,10 @@
   function link(n) {
     if (n.type === "like") return "/likes/";
     if (n.type === "achievement") return "/profile/#achievements";
+    if ((n.type === "post_like" || n.type === "comment") && n.data && n.data.author_uid) return "/u/" + n.data.author_uid + "/#post-" + n.data.post_id;
     return n.match_id ? "/chat/" + n.match_id + "/" : "/matches/";
   }
-  const ICONS = { like: "heart", match: "hearts", message: "chat", call: "phone", achievement: "trophy" };
+  const ICONS = { like: "heart", match: "hearts", message: "chat", call: "phone", achievement: "trophy", post_like: "heart", comment: "chat" };
 
   function render(items) {
     list.textContent = "";

@@ -69,7 +69,7 @@ def bump(uid, **inc):
         patch["achievements"] = earned + [a[0] for a in new]
     st.update("users", uid, patch)
     for a in new:
-        notify(uid, "achievement", f"Достижение: {a[1]} {a[2]}", key=a[0])
+        notify(uid, "achievement", f"Достижение: {a[2]}", key=a[0])
     return [a[0] for a in new]
 
 

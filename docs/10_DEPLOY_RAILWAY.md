@@ -49,7 +49,7 @@
 * `"restartPolicyMaxRetries": 10` — но не больше 10 раз подряд, чтобы не крутиться бесконечно.
 
 ### Файлы `.python-version` и `runtime.txt`
-В них записана версия Python (3.12), чтобы Railway собрал сайт на той же версии, на которой он проверялся.
+В них записана версия Python: `3.12` и `python-3.12`. Цифры «.3» на конце нет специально: Railway может не суметь проверить подлинность Python такой точной версии, и сборка упадёт.
 
 ### Что добавлено в `config/settings.py`
 ```python
@@ -121,6 +121,7 @@ if _railway_host:
 | Что видите | Что делать |
 |---|---|
 | «Railpack could not determine how to build» | Railway не нашёл `requirements.txt` в корне репозитория. Файлы проекта должны лежать прямо в корне, а не в папке внутри репозитория. Если они в папке, задайте её в Settings → Source → **Root Directory** |
+| Сборка упала, подсказка про `MISE_PYTHON_GITHUB_ATTESTATIONS` или «could not verify GitHub attestations» | Railway не смог проверить подлинность скачанного Python именно версии 3.12.3. В файле `runtime.txt` должна быть строка `python-3.12` (без третьей цифры). Исправьте файл на GitHub и дождитесь новой сборки. Быстрый запасной путь: нажать кнопку **Disable Python attestation check** в подсказке Railway |
 | Деплой «Failed», в логах `healthcheck failed` | Откройте логи: в конце будет причина. Чаще всего не заданы `DJANGO_SECRET_KEY` или `FIREBASE_CREDENTIALS_JSON` |
 | `Задайте переменную окружения DJANGO_SECRET_KEY` | Добавьте переменную (шаг 4) |
 | Страница «Bad Request (400)» | Адрес сайта не известен программе: после создания домена нажмите **Redeploy**. Для своего домена добавьте переменную `DJANGO_ALLOWED_HOSTS` |

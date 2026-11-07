@@ -43,7 +43,10 @@
     const photo = DM.el("div", "card-photo");
     const img = DM.el("img", "cover"); img.src = p.photo_url; img.alt = "Фото: " + p.name; img.draggable = false;
     photo.append(img, DM.el("span", "tarot-num", DM.roman(p.age)));
-    const like = DM.el("span", "stamp like", "Нравится"), nope = DM.el("span", "stamp nope", "Пропуск");
+    /* жест свайпа: мягкая подсветка края и маленький значок (без крупных надписей) */
+    const like = DM.el("span", "fx like"), nope = DM.el("span", "fx nope");
+    const lb = DM.el("span", "swipe-badge"); lb.appendChild(DM.icon("heart", "fill")); like.appendChild(lb);
+    const nb = DM.el("span", "swipe-badge"); nb.appendChild(DM.icon("x")); nope.appendChild(nb);
     photo.append(like, nope);
     if (p.badges && p.badges.length) {
       const bd = DM.el("div", "badges");
@@ -106,35 +109,46 @@
     });
   }
 
-  function attachDrag(card) {
-    let startX = 0, dx = 0, active = false;
-    card.addEventListener("pointerdown", e => {
-      if (busy || e.target.closest("button, a") || (card.classList.contains("expanded") && e.target.closest(".card-body"))) return;
-      active = true; dx = 0; startX = e.clientX; card.setPointerCapture(e.pointerId); card.classList.add("dragging");
+  /* Свайп: слушаем всю область ленты (а не только фото), поэтому тянуть можно за любую часть карточки.
+     Кнопки и ссылки внутри карточки по-прежнему нажимаются как обычно. */
+  function attachDrag() {
+    let startX = 0, dx = 0, active = false, moved = false, card = null;
+    deck.addEventListener("pointerdown", e => {
+      card = cards[0];
+      if (!card || busy || !e.isPrimary || (e.pointerType === "mouse" && e.button !== 0)) return;
+      if (e.target.closest("button, a, input, textarea, select")) return;
+      if (card.classList.contains("expanded") && e.target.closest(".card-body")) return;  // раскрытый текст можно прокручивать
+      active = true; moved = false; dx = 0; startX = e.clientX;
+      try { deck.setPointerCapture(e.pointerId); } catch (err) { /* не критично */ }
     });
-    card.addEventListener("pointermove", e => {
-      if (!active) return;
+    deck.addEventListener("pointermove", e => {
+      if (!active || !card) return;
       dx = e.clientX - startX;
-      card.style.transform = "translateX(" + dx + "px) rotate(" + dx / 18 + "deg)";
+      if (!moved && Math.abs(dx) < 6) return;   // лёгкое дрожание пальца не считаем свайпом
+      moved = true; card.classList.add("dragging");
+      card.style.transform = "translateX(" + dx + "px) rotate(" + dx / 22 + "deg)";
       card._like.style.opacity = Math.max(0, Math.min(1, dx / THRESHOLD));
       card._nope.style.opacity = Math.max(0, Math.min(1, -dx / THRESHOLD));
     });
     const end = () => {
       if (!active) return;
-      active = false; card.classList.remove("dragging");
+      active = false;
+      if (!card) return;
+      card.classList.remove("dragging");
       card._like.style.opacity = card._nope.style.opacity = 0;
-      if (Math.abs(dx) > THRESHOLD) decide(dx > 0); else card.style.transform = "";
+      if (moved && Math.abs(dx) > THRESHOLD) decide(dx > 0); else card.style.transform = "";
+      moved = false;
     };
-    card.addEventListener("pointerup", end);
-    card.addEventListener("pointercancel", end);
+    deck.addEventListener("pointerup", end);
+    deck.addEventListener("pointercancel", end);
   }
+  attachDrag();
 
   function render() {
     while (cards.length < 3 && queue.length) {
       const c = buildCard(queue.shift());
       cards.push(c); deck.appendChild(c); c._fit();
     }
-    if (cards[0] && !cards[0]._bound) { attachDrag(cards[0]); cards[0]._bound = true; }
     layout();
     const any = cards.length > 0;
     actions.hidden = hint.hidden = !any;

@@ -18,7 +18,7 @@ window.DMPeople = (function () {
   }
   function postEl(p, opts) {
     opts = opts || {};
-    const d = DM.el("article", "post");
+    const d = DM.el("article", "post"); d.id = "post-" + p.id;
     if (opts.author) {
       const head = DM.el("a", "post-author"); head.href = "/u/" + opts.author.uid + "/";
       const img = DM.el("img", "avatar"); img.src = opts.author.photo_url; img.alt = ""; img.loading = "lazy";
@@ -37,7 +37,92 @@ window.DMPeople = (function () {
       });
       d.appendChild(del);
     }
+    const authorUid = p.uid || (opts.author && opts.author.uid);
+    if (authorUid) d.appendChild(reactions(p, authorUid));
     return d;
+  }
+
+  /* Лайк и комментарии под постом. Комментарии подгружаются, когда их впервые открывают. */
+  function reactions(p, authorUid) {
+    const base = "/api/users/" + authorUid + "/posts/" + p.id;
+    const wrap = DM.el("div", "post-reactions");
+    const bar = DM.el("div", "post-actions");
+    const like = DM.el("button", "react like"); like.type = "button";
+    const talk = DM.el("button", "react talk"); talk.type = "button"; talk.setAttribute("aria-expanded", "false");
+    const paintLike = () => {
+      like.textContent = ""; like.appendChild(DM.icon("heart", p.liked ? "fill" : "")); like.appendChild(DM.el("span", "", String(p.likes || 0)));
+      like.classList.toggle("on", !!p.liked); like.setAttribute("aria-pressed", String(!!p.liked));
+      like.setAttribute("aria-label", (p.liked ? "Убрать лайк. " : "Поставить лайк. ") + "Сейчас: " + (p.likes || 0));
+    };
+    const paintTalk = () => {
+      talk.textContent = ""; talk.appendChild(DM.icon("chat")); talk.appendChild(DM.el("span", "", String(p.comments || 0)));
+      talk.setAttribute("aria-label", "Комментарии: " + (p.comments || 0));
+    };
+    paintLike(); paintTalk();
+    like.addEventListener("click", async () => {
+      like.disabled = true;
+      try { const r = await DM.api(base + "/like/", { method: p.liked ? "DELETE" : "POST" }); p.liked = r.liked; p.likes = r.likes; paintLike(); }
+      catch (e) { DM.toast(e.message, "error"); }
+      finally { like.disabled = false; }
+    });
+
+    const box = DM.el("div", "comments"); box.hidden = true;
+    const list = DM.el("div", "comment-list");
+    const form = DM.el("form", "comment-form"); form.noValidate = true;
+    const input = DM.el("input"); input.maxLength = 500; input.placeholder = "Написать комментарий…"; input.setAttribute("aria-label", "Ваш комментарий"); input.autocomplete = "off";
+    const send = DM.el("button", "btn sm"); send.type = "submit"; send.setAttribute("aria-label", "Отправить комментарий"); send.appendChild(DM.icon("send"));
+    form.append(input, send);
+    const err = DM.el("p", "err"); err.setAttribute("role", "alert");
+    box.append(list, form, err);
+
+    function commentEl(c) {
+      const row = DM.el("div", "comment");
+      const who = c.author.uid ? DM.el("a", "comment-who") : DM.el("span", "comment-who"); if (c.author.uid) who.href = "/u/" + c.author.uid + "/";
+      if (c.author.photo_url) { const im = DM.el("img", "avatar"); im.src = c.author.photo_url; im.alt = ""; im.loading = "lazy"; who.appendChild(im); }
+      else who.appendChild(DM.el("span", "avatar avatar-empty"));
+      const body = DM.el("div", "comment-body");
+      const head = DM.el("div", "comment-head"); head.append(DM.el("strong", "", c.mine ? "Вы" : c.author.name), DM.el("time", "", DM.dateText(c.created_at)));
+      body.append(head, DM.el("p", "", c.text));
+      row.append(who, body);
+      if (c.can_delete) {
+        const del = DM.el("button", "link-btn danger del-comment"); del.type = "button"; del.setAttribute("aria-label", "Удалить комментарий"); del.appendChild(DM.icon("trash"));
+        del.addEventListener("click", async () => {
+          if (!confirm("Удалить комментарий?")) return;
+          try { const r = await DM.api(base + "/comments/" + c.id + "/", { method: "DELETE" }); row.remove(); p.comments = r.comments; paintTalk(); empty(); }
+          catch (e) { DM.toast(e.message, "error"); }
+        });
+        row.appendChild(del);
+      }
+      return row;
+    }
+    const empty = () => { const e = list.querySelector(".comment-empty"); if (!list.querySelector(".comment")) { if (!e) list.appendChild(DM.el("p", "muted small comment-empty", "Комментариев пока нет. Напишите первым.")); } else if (e) e.remove(); };
+
+    let loaded = false;
+    talk.addEventListener("click", async () => {
+      box.hidden = !box.hidden; talk.setAttribute("aria-expanded", String(!box.hidden));
+      if (box.hidden) return;
+      input.focus();
+      if (loaded) return;
+      try {
+        const { comments } = await DM.api(base + "/comments/");
+        list.textContent = ""; comments.forEach(c => list.appendChild(commentEl(c))); loaded = true; empty();
+      } catch (e) { DM.toast(e.message, "error"); }
+    });
+    form.addEventListener("submit", async ev => {
+      ev.preventDefault(); err.textContent = "";
+      const text = input.value.trim();
+      if (!text) { err.textContent = "Напишите комментарий"; return; }
+      send.disabled = true;
+      try {
+        const r = await DM.api(base + "/comments/", { method: "POST", json: { text } });
+        input.value = ""; p.comments = r.comments; paintTalk();
+        const e0 = list.querySelector(".comment-empty"); if (e0) e0.remove();
+        list.appendChild(commentEl(r.comment)); loaded = true;
+      } catch (e) { err.textContent = (e.fields && e.fields.text) || e.message; }
+      finally { send.disabled = false; }
+    });
+    bar.append(like, talk); wrap.append(bar, box);
+    return wrap;
   }
 
   /* Форма публикации поста. onPosted(post) вызывается после успешной публикации. */

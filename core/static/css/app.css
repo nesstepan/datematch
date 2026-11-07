@@ -20,7 +20,7 @@
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
 body { margin: 0; overflow-x: hidden; color: var(--ink); font: 400 16px/1.6 var(--body); -webkit-font-smoothing: antialiased;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .36  0 0 0 0 .3  0 0 0 0 .24  0 0 0 .13 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23n%29'/%3E%3C/svg%3E"), var(--paper); }
+  background: var(--paper); }
 h1, h2, h3 { font-family: var(--serif); line-height: 1.15; margin: 0 0 .5em; letter-spacing: -.005em; font-weight: 700; }
 h1 { font-size: clamp(1.9rem, 5vw, 3.2rem); }
 h2 { font-size: 1.45rem; } h3 { font-size: 1.1rem; }
@@ -354,13 +354,8 @@ html, body { max-width: 100%; }
 .shell, .panel, .post, .match-item, .profile-hero > *, .person, .field, .report, .blocked-item { min-width: 0; }
 p, h1, h2, h3, .bio, .status, .status-line, .post p, .facts span, .chip, .person-meta, .match-item .last, .msg { overflow-wrap: anywhere; word-break: break-word; }
 
-/* пёстрое зерно бумаги и печати */
-body { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012 .35' numOctaves='2' seed='9'/%3E%3CfeColorMatrix values='0 0 0 0 .4  0 0 0 0 .3  0 0 0 0 .2  0 0 0 .2 -.06'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23f%29'/%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .30  0 0 0 0 .24  0 0 0 0 .18  0 0 0 .55 -.12'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23n%29'/%3E%3C/svg%3E"), var(--paper); background-blend-mode: multiply, normal, normal; }
-body::after { content: ""; position: fixed; inset: 0; z-index: 200; pointer-events: none; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .30  0 0 0 0 .24  0 0 0 0 .18  0 0 0 .55 -.12'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23n%29'/%3E%3C/svg%3E"); opacity: .42; mix-blend-mode: multiply; }
-:root[data-theme="dark"] body::after { mix-blend-mode: screen; opacity: .16; }
-.panel, .post, .cta-band { box-shadow: 5px 5px 0 var(--line), inset 0 0 36px rgba(120, 90, 50, .07); }
-.tarot-frame img, .card-photo img, .match-photos img { filter: sepia(.16) contrast(1.05) saturate(.92); }
-.card-photo::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .30  0 0 0 0 .24  0 0 0 0 .18  0 0 0 .55 -.12'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23n%29'/%3E%3C/svg%3E"); opacity: .5; mix-blend-mode: multiply; }
+/* фон ровный, без зерна: так меньше устают глаза */
+.panel, .post, .cta-band { box-shadow: 5px 5px 0 var(--line); }
 
 /* карточка в ленте: фото, подпись-имя и отдельный прямоугольник с описанием */
 .card { padding: 8px; }
@@ -395,7 +390,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 200; pointer-even
 /* лента постов */
 .post-author { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; text-decoration: none; color: var(--ink); }
 .post-author .avatar { width: 40px; height: 40px; } .post-author strong { display: block; font: 700 1rem var(--serif); } .post-author time { font-size: .76rem; color: var(--ink-soft); }
-.post-img { max-width: 100%; max-height: 420px; border: 1.5px solid var(--ink); display: block; margin: 8px 0; filter: sepia(.12) contrast(1.04); }
+.post-img { max-width: 100%; max-height: 420px; border: 1.5px solid var(--ink); display: block; margin: 8px 0; }
 .posts .post { margin: 0; } #composer { margin-bottom: 18px; }
 .nav a .dot { margin-left: 2px; }
 a.icon-btn.active { background: var(--ink); color: var(--on-ink); }
@@ -432,4 +427,86 @@ a.icon-btn.active { background: var(--ink); color: var(--on-ink); }
   .chat { height: calc(100dvh - var(--top) - var(--bottom) - 14px); } .msg { font-size: .92rem; padding: 7px 12px; } .gift-panel { bottom: 62px; }
   .match-item { padding: 10px 12px; gap: 10px; } .avatar { width: 46px; height: 46px; } .achv { grid-template-columns: repeat(2, 1fr); gap: 8px; } .stats { gap: 8px; }
   .dialog { padding: 18px 14px; } .toast { font-size: .84rem; padding: 10px 12px; }
+}
+
+
+/* ================= версия 5: ровный фон, узкие карточки, спокойная главная, лайки и комментарии ================= */
+:root { --deck-w: 330px; }
+.torn-top::before, .torn-top::after { content: none; }
+
+/* --- лента: карточка уже и выше, фото крупнее, текст читается --- */
+.discover { gap: 12px; }
+.discover-head, .tip, .filters { width: min(100%, var(--deck-w)); }
+.tip { padding: 6px 10px; font-size: .8rem; line-height: 1.35; align-items: center; } .tip p { margin: 0; }
+.deck { width: min(100%, var(--deck-w)); height: clamp(440px, calc(100dvh - var(--top) - var(--bottom) - 255px), 690px); touch-action: none; }
+.deck::before { content: ""; position: absolute; inset: 0 -56px; }            /* зона захвата шире карточки */
+.card { touch-action: none; }
+.card.expanded { touch-action: pan-y; }
+.card .tarot-frame { background: var(--paper); }
+.card-photo { flex: 1 1 0; min-height: 180px; }
+.card-photo img.cover { object-position: center 24%; }
+.card-body { max-height: none; overflow: visible; padding: 10px 12px 12px; }
+.card.expanded .card-body { overflow-y: auto; }
+.card .status { font-size: 1.15rem; margin-bottom: 2px; }
+.card .bio { font-size: .92rem; line-height: 1.5; -webkit-line-clamp: 2; }
+.card .extras { margin: 6px 0; }
+.card .tags { flex-wrap: wrap; max-height: 25px; overflow: hidden; }
+.card.expanded .tags { max-height: none; }
+.card .badges, .card .presence-tag { top: 44px; }
+
+/* жест свайпа: мягкая подсветка края и маленький значок вместо крупных надписей */
+.fx { position: absolute; inset: 0; opacity: 0; pointer-events: none; z-index: 4; }
+.fx.like { background: linear-gradient(270deg, rgba(63,122,92,.55), transparent 58%); }
+.fx.nope { background: linear-gradient(90deg, rgba(60,50,45,.55), transparent 58%); }
+.fx .swipe-badge { position: absolute; top: 86px; width: 52px; height: 52px; display: grid; place-items: center; border-radius: 50%; background: var(--paper); border: 2px solid var(--ink); font-size: 1.35rem; }
+.fx.like .swipe-badge { right: 16px; color: var(--rose); } .fx.nope .swipe-badge { left: 16px; color: var(--ink); }
+.actions { gap: 34px; }
+.round { width: 58px; height: 58px; } .act.like .round { width: 66px; height: 66px; }
+
+/* --- главная: спокойная, без «обрывков» и наложений --- */
+.hero { padding: 2vh 0 64px; gap: 48px; }
+.hero-art { height: 450px; width: min(100%, 470px); }
+.hero-art .tarot { position: absolute; box-shadow: 6px 6px 0 var(--line); inset: auto; }
+.hero-art .tarot.t-front { width: 262px; height: 392px; left: 50%; top: 24px; margin-left: -131px; z-index: 3; }
+.hero-art .tarot.t-back { width: 206px; height: 312px; top: 70px; z-index: 1; }
+.hero-art .tarot.t-back.l { left: 0; transform: rotate(-7deg); } .hero-art .tarot.t-back.r { right: 0; transform: rotate(7deg); }
+.hero-art .tarot-frame { background: var(--sage); }
+.hero-art .tarot-frame .pic { position: absolute; left: 0; top: 0; width: 100%; height: calc(100% - 38px); }
+.hero-art .tarot-num { z-index: 4; top: 10px; font-size: .95rem; }
+.hero-art .tarot.t-back .tarot-title h2 { font-size: .8rem; }
+.dark-band { padding: 72px 0 64px; border-top: 2px solid var(--ink); }
+:root[data-theme="dark"] .dark-band { border-top-color: var(--line); }
+.cta-band .art { display: none; }
+
+/* --- лайки и комментарии под постами --- */
+.post { scroll-margin-top: calc(var(--top) + 16px); }
+.post.flash { animation: flash 2.2s ease-out; } @keyframes flash { 0% { box-shadow: 0 0 0 4px var(--rose), 5px 5px 0 var(--line); } 100% { box-shadow: 5px 5px 0 var(--line); } }
+.post-reactions { margin-top: 12px; border-top: 1px dashed var(--line); padding-top: 10px; }
+.post-actions { display: flex; gap: 8px; }
+.react { display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 4px 14px; background: var(--card); color: var(--ink); border: 1.5px solid var(--ink); border-radius: 999px;
+  font: 700 .85rem var(--body); cursor: pointer; transition: background .15s, transform .1s; }
+.react:hover { background: var(--rose-soft); } .react:active { transform: scale(.96); } .react:disabled { opacity: .6; cursor: wait; }
+.react.on { background: var(--rose-soft); border-color: var(--rose); color: var(--rose); }
+.comments { margin-top: 12px; display: grid; gap: 10px; }
+.comment-list { display: grid; gap: 10px; }
+.comment { display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: start; }
+.comment .avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--ink); display: block; background: var(--paper-2); }
+.comment-who { display: block; text-decoration: none; }
+.comment-body { background: var(--paper); border: 1px solid var(--line); border-radius: 4px 12px 12px 12px; padding: 7px 12px; min-width: 0; }
+.comment-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.comment-head strong { font: 700 .9rem var(--serif); } .comment-head time { font-size: .72rem; color: var(--ink-soft); letter-spacing: .04em; }
+.comment-body p { margin: 2px 0 0; font-size: .92rem; line-height: 1.45; white-space: pre-wrap; }
+.comment .del-comment { padding: 4px; }
+.comment-form { display: flex; gap: 8px; } .comment-form input { flex: 1; min-width: 0; min-height: 42px; }
+.comment-form .btn { padding: 0 16px; }
+.comment-empty { margin: 0; }
+
+@media (max-width: 640px) {
+  :root { --deck-w: min(100%, 330px); }
+  .deck { height: clamp(430px, calc(100dvh - var(--top) - var(--bottom) - 214px), 640px); min-height: 0; max-height: none; }
+  .card-body { padding: 8px 10px 10px; } .card .bio { font-size: .88rem; }
+  .hero-art { height: 410px; } .hero-art .tarot.t-front { width: 224px; height: 340px; margin-left: -112px; }
+  .hero-art .tarot.t-back { width: 160px; height: 250px; top: 64px; }
+  .hero-art .tarot.t-back.l { left: 10px; } .hero-art .tarot.t-back.r { right: 10px; }
+  .comment { grid-template-columns: 30px 1fr auto; gap: 8px; } .comment .avatar { width: 30px; height: 30px; }
 }

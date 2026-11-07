@@ -10,23 +10,25 @@
     {% else %}<p class="row"><a class="btn" href="/register/">Создать анкету</a> <a class="btn ghost" href="/login/">Войти</a></p>{% endif %}
   </div>
   <div class="hero-art" aria-hidden="true">
-    <div class="tarot">
-      <div class="tarot-frame">
-        <span class="tarot-num">VI</span>
-        {% art "sun" "sun" %}
-        <span class="cl l">{% art "cloud" %}</span><span class="cl r">{% art "cloud" %}</span>
-        {% art "cupid" "cupid" %}
-        {% art "rose" "rose l" %}{% art "rose" "rose l2" %}{% art "rose" "rose r" %}
-        <div class="tarot-title">{% art "star" %}<h2>Влюблённые</h2>{% art "star" %}</div>
-      </div>
-    </div>
-    <span class="petal"></span><span class="petal"></span><span class="petal"></span>
-    <span class="note">Лайки вернее стрел: они взаимные</span>
+    <div class="tarot t-back l"><div class="tarot-frame">
+      <svg class="art pic" viewBox="0 0 300 380" preserveAspectRatio="xMidYMid slice"><use href="#art-p2"></use></svg>
+      <span class="tarot-num">XXIX</span>
+      <div class="tarot-title">{% art "star" %}<h2>Артём</h2>{% art "star" %}</div>
+    </div></div>
+    <div class="tarot t-back r"><div class="tarot-frame">
+      <svg class="art pic" viewBox="0 0 300 380" preserveAspectRatio="xMidYMid slice"><use href="#art-p3"></use></svg>
+      <span class="tarot-num">XXV</span>
+      <div class="tarot-title">{% art "star" %}<h2>Лиза</h2>{% art "star" %}</div>
+    </div></div>
+    <div class="tarot t-front"><div class="tarot-frame">
+      <svg class="art pic" viewBox="0 0 300 380" preserveAspectRatio="xMidYMid slice"><use href="#art-p1"></use></svg>
+      <span class="tarot-num">XXVII</span>
+      <div class="tarot-title">{% art "star" %}<h2>Мария</h2>{% art "star" %}</div>
+    </div></div>
   </div>
 </section>
 
-<section class="dark-band torn-top">
-  <span class="cloud c1">{% art "cloud" %}</span><span class="cloud c2">{% art "cloud" %}</span><span class="cloud c3">{% art "cloud" %}</span>
+<section class="dark-band">
   <div class="inner">
     <h2>Три шага до <em>первого сообщения</em></h2>
     <div class="arcana">
@@ -48,7 +50,6 @@
 </section>
 
 <section class="cta-band">
-  {% art "cupid" "art" %}
   <h2>Готовы вытянуть <em>свою карту</em>?</h2>
   {% if me %}<p class="muted">Ваша анкета уже ждёт других.</p>
   <a class="btn" href="/discover/">Открыть ленту</a>{% else %}<p class="muted">Регистрация занимает около минуты.</p>

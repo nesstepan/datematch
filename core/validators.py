@@ -260,6 +260,15 @@ def clean_post_text(v):
     return v
 
 
+def clean_comment(v):
+    v = " ".join((v or "").split())
+    if not v:
+        raise _Bad("Напишите комментарий")
+    if len(v) > 500:
+        raise _Bad("Комментарий длиннее 500 символов")
+    return v
+
+
 def clean_search_query(v):
     v = " ".join((v or "").split())
     return v[:50]

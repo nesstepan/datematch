@@ -490,6 +490,24 @@ def typing(request, match_id):
     return {"ok": True}
 
 
+@api_view(["POST", "DELETE"])
+def post_like(request, uid, post_id):
+    return services.like_post(request.me["id"], uid, post_id, like=request.method == "POST")
+
+
+@api_view(["GET", "POST"])
+def post_comments(request, uid, post_id):
+    me = request.me["id"]
+    if request.method == "GET":
+        return {"comments": services.list_comments(me, uid, post_id)}
+    return services.add_comment(me, uid, post_id, read_json(request).get("text")), 201
+
+
+@api_view(["DELETE"])
+def post_comment(request, uid, post_id, comment_id):
+    return services.delete_comment(request.me["id"], uid, post_id, comment_id)
+
+
 @api_view(["GET"])
 def posts_feed(request):
     return {"posts": services.matches_posts(request.me["id"])}

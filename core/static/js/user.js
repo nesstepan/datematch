@@ -80,6 +80,11 @@
     data.posts.forEach(x => posts.appendChild(DMPeople.postEl(x, { canDelete: isMe })));
     if (!data.posts.length) posts.appendChild(DM.el("p", "muted", isMe ? "Пока пусто. Напишите первый пост, чтобы вас можно было узнать лучше." : "Пока нет постов."));
     body.appendChild(wall);
+    // ссылка из уведомления («#post-…») открывает нужный пост
+    if (location.hash.startsWith("#post-")) {
+      const target = document.getElementById(location.hash.slice(1));
+      if (target) { target.scrollIntoView({ block: "center" }); target.classList.add("flash"); }
+    }
   }
 
   async function showAchievements() {
