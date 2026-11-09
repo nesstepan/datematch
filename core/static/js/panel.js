@@ -34,6 +34,43 @@
     });
   }
 
+  /* Окно «Новый пароль»: администратор вводит пароль или создаёт случайный, а затем сообщает его пользователю. */
+  function randomPassword() {
+    const letters = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ", digits = "23456789", all = letters + digits;
+    const pick = set => set[crypto.getRandomValues(new Uint32Array(1))[0] % set.length];
+    const out = [pick(letters), pick(digits)];
+    while (out.length < 12) out.push(pick(all));
+    return out.sort(() => crypto.getRandomValues(new Uint8Array(1))[0] - 128).join("");
+  }
+  function passwordDialog(u) {
+    const wrap = DM.el("div", "modal"); wrap.setAttribute("role", "dialog"); wrap.setAttribute("aria-modal", "true");
+    const box = DM.el("form", "panel dialog"); box.noValidate = true;
+    box.appendChild(DM.el("h2", "", "Новый пароль"));
+    box.appendChild(DM.el("p", "muted", u.name + " (" + u.email + "). После смены пользователь сможет войти только с новым паролем, старые входы закроются."));
+    const field = DM.el("div", "field"), lab = DM.el("label", "", "Пароль (от 8 символов, буквы и цифры)"); lab.htmlFor = "adm-pw";
+    const input = DM.el("input"); input.id = "adm-pw"; input.type = "text"; input.autocomplete = "off"; input.maxLength = 128;
+    const err = DM.el("p", "err"); err.setAttribute("role", "alert");
+    field.append(lab, input, err);
+    const gen = DM.el("button", "btn ghost sm", "Сгенерировать"); gen.type = "button";
+    gen.addEventListener("click", () => { input.value = randomPassword(); input.focus(); input.select(); });
+    const row = DM.el("div", "row"), save = DM.el("button", "btn", "Сохранить"), cancel = DM.el("button", "btn ghost", "Отмена");
+    save.type = "submit"; cancel.type = "button"; row.append(save, cancel);
+    box.append(field, DM.el("p", "", ""), gen, DM.el("p", "", ""), row);
+    wrap.appendChild(box); document.body.appendChild(wrap); input.focus();
+    const close = () => wrap.remove();
+    cancel.addEventListener("click", close);
+    wrap.addEventListener("keydown", e => { if (e.key === "Escape") close(); });
+    box.addEventListener("submit", async ev => {
+      ev.preventDefault(); err.textContent = "";
+      if (input.value.length < 8) { err.textContent = "Пароль должен быть не короче 8 символов"; return; }
+      save.disabled = true;
+      try {
+        await DM.api("/api/admin/users/" + u.uid + "/password/", { method: "POST", json: { password: input.value } });
+        close(); DM.toast("Пароль для «" + u.name + "» изменён. Сообщите его пользователю.");
+      } catch (e) { err.textContent = (e.fields && e.fields.password) || e.message; save.disabled = false; }
+    });
+  }
+
   function drawUsers() {
     const q = filter.value.trim().toLowerCase();
     rows.textContent = "";
@@ -45,6 +82,11 @@
       const st = DM.el("td"); st.appendChild(DM.el("span", "badge" + (u.is_active ? "" : " off"), u.is_active ? "активен" : "заблокирован"));
       tr.appendChild(st);
       const act = DM.el("td"), btns = DM.el("div", "btns");
+      if (u.uid !== document.body.dataset.me) {  // свой пароль меняют в личном кабинете
+        const pw = DM.el("button", "btn ghost", "Пароль"); pw.type = "button"; pw.title = "Задать новый пароль пользователю";
+        pw.addEventListener("click", () => passwordDialog(u));
+        btns.appendChild(pw);
+      }
       if (!u.is_admin) {
         const block = DM.el("button", "btn ghost", u.is_active ? "Заблокировать" : "Разблокировать"); block.type = "button";
         block.addEventListener("click", () => run(async () => {

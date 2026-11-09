@@ -22,6 +22,25 @@
     <p class="muted small" id="blocked-empty" hidden>Список пуст.</p>
   </div></div>
 
+  <div class="section" id="password"><div class="panel">
+    <h2>{% icon "lock" %} Смена пароля</h2>
+    <p class="muted">Введите текущий пароль и придумайте новый: не короче 8 символов, с буквами и цифрами. После смены на других устройствах придётся войти заново.</p>
+    <form id="pw-form" class="form" novalidate>
+      <div class="field"><label for="pw-current">Текущий пароль</label>
+        <input id="pw-current" type="password" autocomplete="current-password" required>
+        <p class="err" data-err="current_password"></p></div>
+      <div class="field"><label for="pw-new">Новый пароль</label>
+        <input id="pw-new" type="password" autocomplete="new-password" minlength="8" maxlength="128" required>
+        <p class="err" data-err="new_password"></p></div>
+      <div class="field"><label for="pw-repeat">Повторите новый пароль</label>
+        <input id="pw-repeat" type="password" autocomplete="new-password" maxlength="128" required>
+        <p class="err" data-err="repeat"></p></div>
+      <label class="check"><input id="pw-show" type="checkbox"> Показать пароли</label>
+      <p class="err form-err" role="alert"></p>
+      <button class="btn" type="submit" id="pw-submit">{% icon "check" %}Сменить пароль</button>
+    </form>
+  </div></div>
+
   <div class="section danger-zone" id="danger"><div class="panel">
     <h2>{% icon "alert" %} Удаление аккаунта</h2>
     <p class="muted">Анкета, фото, пары и переписки удалятся без возможности восстановления.</p>

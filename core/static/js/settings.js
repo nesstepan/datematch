@@ -15,6 +15,31 @@
   bind(hidden, "hidden", "Вас не видно в поиске и ленте", "Вы снова в поиске");
   bind(hideOnline, "hide_online", "Статус «в сети» скрыт", "Статус «в сети» снова виден");
 
+  /* ---------- смена пароля ---------- */
+  const pwForm = $("pw-form");
+  $("pw-show").addEventListener("change", e => {
+    ["pw-current", "pw-new", "pw-repeat"].forEach(id => { $(id).type = e.target.checked ? "text" : "password"; });
+  });
+  pwForm.addEventListener("submit", async ev => {
+    ev.preventDefault();
+    const current = $("pw-current").value, next = $("pw-new").value, again = $("pw-repeat").value;
+    const errors = {};
+    if (!current) errors.current_password = "Введите текущий пароль";
+    if (next.length < 8) errors.new_password = "Пароль должен быть не короче 8 символов";
+    else if (!/[A-Za-zА-Яа-яЁё]/.test(next) || !/\d/.test(next)) errors.new_password = "Пароль должен содержать и буквы, и цифры";
+    if (!errors.new_password && next === current) errors.new_password = "Придумайте пароль, которого раньше не было";
+    if (next !== again) errors.repeat = "Пароли не совпадают";
+    DM.showErrors(pwForm, errors, "");
+    if (Object.keys(errors).length) return;
+    const btn = $("pw-submit"); btn.disabled = true;
+    try {
+      await DM.api("/api/me/password/", { method: "POST", json: { current_password: current, new_password: next } });
+      pwForm.reset(); ["pw-current", "pw-new", "pw-repeat"].forEach(id => { $(id).type = "password"; });
+      DM.showErrors(pwForm, {}, ""); DM.toast("Пароль изменён");
+    } catch (e) { DM.showErrors(pwForm, e.fields, Object.keys(e.fields || {}).length ? "" : e.message); }
+    finally { btn.disabled = false; }
+  });
+
   const bl = $("blocked-list"), blEmpty = $("blocked-empty");
   function drawBlocked(items) {
     bl.textContent = ""; blEmpty.hidden = items.length > 0;

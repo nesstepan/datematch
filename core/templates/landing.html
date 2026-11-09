@@ -1,46 +1,37 @@
 {% extends "base.html" %}
-{% load dm %}
+{% load static dm %}
 {% block content %}
 <section class="hero">
   <div class="hero-copy">
-    <span class="eyebrow">{% icon "sparkles" %}Знакомства по старинке и по-новому</span>
-    <h1>Стрела Амура <em>не промахивается</em>, когда симпатия взаимна</h1>
-    <p class="lead">Листайте анкеты, как карты Таро: нравится или нет. Чат откроется только тогда, когда выбор совпал. Никаких лишних сообщений от тех, кто вам не интересен.</p>
+    <span class="eyebrow">{% icon "sparkles" %}Для любви, дружбы и разговоров по душам</span>
+    <h1>Найдите пару, друзей или просто <em>хорошего собеседника</em></h1>
+    <p class="lead">Расскажите о себе, отмечайте тех, кто вам интересен, и пишите друг другу, когда симпатия взаимна. Ищете любовь, компанию на выходные или спокойный разговор по вечерам, здесь найдётся место для каждого. И никаких случайных сообщений.</p>
     {% if me %}<p class="row"><a class="btn" href="/discover/">Открыть ленту</a> <a class="btn ghost" href="/likes/">Кто меня лайкнул</a></p>
     {% else %}<p class="row"><a class="btn" href="/register/">Создать анкету</a> <a class="btn ghost" href="/login/">Войти</a></p>{% endif %}
   </div>
-  <div class="hero-art" aria-hidden="true">
-    <div class="tarot t-back l"><div class="tarot-frame">
-      <svg class="art pic" viewBox="0 0 300 380" preserveAspectRatio="xMidYMid slice"><use href="#art-p2"></use></svg>
-      <span class="tarot-num">XXIX</span>
-      <div class="tarot-title">{% art "star" %}<h2>Артём</h2>{% art "star" %}</div>
-    </div></div>
-    <div class="tarot t-back r"><div class="tarot-frame">
-      <svg class="art pic" viewBox="0 0 300 380" preserveAspectRatio="xMidYMid slice"><use href="#art-p3"></use></svg>
-      <span class="tarot-num">XXV</span>
-      <div class="tarot-title">{% art "star" %}<h2>Лиза</h2>{% art "star" %}</div>
-    </div></div>
-    <div class="tarot t-front"><div class="tarot-frame">
-      <svg class="art pic" viewBox="0 0 300 380" preserveAspectRatio="xMidYMid slice"><use href="#art-p1"></use></svg>
-      <span class="tarot-num">XXVII</span>
-      <div class="tarot-title">{% art "star" %}<h2>Мария</h2>{% art "star" %}</div>
-    </div></div>
+  <div class="hero-art">
+    <figure class="lace-card">
+      <img class="card-img" src="{% static 'img/lovers-card.jpg' %}" width="669" height="1182" alt="Карта Таро «Влюблённые»: двое в нежных объятиях среди роз">
+      <img class="frame" src="{% static 'img/lace-ribbon-frame.png' %}" width="900" height="1370" alt="" aria-hidden="true">
+    </figure>
   </div>
 </section>
 
+<div class="torn-sep" aria-hidden="true"></div>
 <section class="dark-band">
   <div class="inner">
     <h2>Три шага до <em>первого сообщения</em></h2>
     <div class="arcana">
       <div class="arcanum"><div class="arcanum-in"><span class="num">I</span><div class="pic">{% icon "user" "lg" %}</div><h3>Расскажите о себе</h3>
-        <p>Фото, пара слов, интересы. Можно добавить видео и любимую песню.</p><div class="cap">Анкета</div></div></div>
+        <p>Фото, пара слов, интересы и то, что вы ищете: любовь, друзей или общение. Можно добавить видео и любимую песню.</p><div class="cap">Анкета</div></div></div>
       <div class="arcanum"><div class="arcanum-in"><span class="num">II</span><div class="pic">{% icon "layers" "lg" %}</div><h3>Листайте ленту</h3>
         <p>Смахните карточку вправо, если нравится, влево, если нет. Настройте фильтры.</p><div class="cap">Лента</div></div></div>
       <div class="arcanum"><div class="arcanum-in"><span class="num">III</span><div class="pic">{% icon "hearts" "lg" %}</div><h3>Общайтесь</h3>
-        <p>При взаимном лайке появляется пара: текст, фото, голосовые и подарки.</p><div class="cap">Пара</div></div></div>
+        <p>Когда интерес взаимный, открывается чат: текст, фото, голосовые и подарки. Дальше решаете сами: свидание, дружба или просто беседа.</p><div class="cap">Пара</div></div></div>
     </div>
   </div>
 </section>
+<div class="torn-sep flip" aria-hidden="true"></div>
 
 <section class="perks">
   <div class="perk"><div class="badge-ic">{% icon "eye-off" %}</div><h3>Вы решаете, кому видны</h3><p>Скройте анкету из поиска или статус «в сети» в любой момент.</p></div>
@@ -50,7 +41,7 @@
 </section>
 
 <section class="cta-band">
-  <h2>Готовы вытянуть <em>свою карту</em>?</h2>
+  <h2>Готовы <em>познакомиться</em>?</h2>
   {% if me %}<p class="muted">Ваша анкета уже ждёт других.</p>
   <a class="btn" href="/discover/">Открыть ленту</a>{% else %}<p class="muted">Регистрация занимает около минуты.</p>
   <a class="btn" href="/register/">Создать анкету</a>{% endif %}

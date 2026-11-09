@@ -48,11 +48,6 @@
     const lb = DM.el("span", "swipe-badge"); lb.appendChild(DM.icon("heart", "fill")); like.appendChild(lb);
     const nb = DM.el("span", "swipe-badge"); nb.appendChild(DM.icon("x")); nope.appendChild(nb);
     photo.append(like, nope);
-    if (p.badges && p.badges.length) {
-      const bd = DM.el("div", "badges");
-      p.badges.slice(0, 3).forEach(b => { const x = DM.el("span"); x.appendChild(DM.icon(b.icon)); x.title = b.title; bd.appendChild(x); });
-      photo.appendChild(bd);
-    }
     if (p.online) {
       const pr = DM.el("span", "presence-tag"); pr.appendChild(DM.el("span", "online-dot")); pr.appendChild(document.createTextNode("в сети")); photo.appendChild(pr);
     }

@@ -12,6 +12,7 @@ from . import features, security, services, validators
 from .exceptions import ApiError, StoreError
 
 log = logging.getLogger(__name__)
+services.ASYNC_SIDE_EFFECTS = not settings.USE_MEMORY_DB
 
 
 def error_response(exc: ApiError):
@@ -28,6 +29,9 @@ def current_user(request):
     if not user.get("is_active", True):
         request.session.flush()
         raise ApiError("Ваш аккаунт заблокирован администратором", 403, "blocked")
+    if request.session.get("pv", 0) != user.get("pwv", 0):  # пароль меняли: старые входы недействительны
+        request.session.flush()
+        raise ApiError("Пароль был изменён. Войдите снова.", 401, "unauthorized")
     services.touch(uid, user)  # «был в сети» (не чаще раза в минуту)
     return user
 
@@ -115,6 +119,7 @@ def register(request):
     user = services.create_user(cleaned, photo, settings.ADMIN_EMAILS)
     request.session.flush()
     request.session["uid"] = user["id"]
+    request.session["pv"] = user.get("pwv", 0)
     return {"user": services.private_profile(user)}, 201
 
 
@@ -140,6 +145,7 @@ def login(request):
         user = services.make_admin(user["id"])
     request.session.flush()
     request.session["uid"] = user["id"]
+    request.session["pv"] = user.get("pwv", 0)
     return {"user": services.private_profile(user)}
 
 
@@ -308,6 +314,24 @@ def me_settings(request):
     return {"user": services.private_profile(services.update_settings(request.me["id"], read_json(request)))}
 
 
+@api_view(["POST"])
+def me_password(request):
+    """Смена пароля в личном кабинете: нужен текущий пароль. Число неверных попыток ограничено."""
+    body = read_json(request)
+    key = f"pw|{request.me['id']}"
+    if security.login_limiter.blocked(key):
+        raise ApiError("Слишком много неверных попыток. Подождите 10 минут.", 429, "too_many_attempts")
+    try:
+        version = services.change_password(request.me["id"], body.get("current_password"), body.get("new_password"))
+    except ApiError as exc:
+        if exc.code == "wrong_current_password":
+            security.login_limiter.hit(key)
+        raise
+    security.login_limiter.reset(key)
+    request.session["pv"] = version  # текущий вход остаётся действительным, остальные нет
+    return {"ok": True}
+
+
 @api_view(["POST", "DELETE"])
 def me_video(request):
     uid = request.me["id"]
@@ -374,6 +398,15 @@ def admin_stats(request):
 @api_view(["GET"], admin=True)
 def admin_users(request):
     return {"users": services.admin_users()}
+
+
+@api_view(["POST"], admin=True)
+def admin_user_password(request, uid):
+    """Администратор задаёт новый пароль пользователю. Свой пароль меняют в личном кабинете."""
+    if uid == request.me["id"]:
+        raise ApiError("Свой пароль меняйте в личном кабинете", 400, "bad_request")
+    services.admin_set_password(uid, read_json(request).get("password"))
+    return {"ok": True}
 
 
 @api_view(["PATCH", "DELETE"], admin=True)

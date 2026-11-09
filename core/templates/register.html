@@ -58,7 +58,7 @@
         <h2><span class="step-no">3</span>Фото и интересы</h2>
         <div class="field"><label for="photo">Главное фото</label>
           <div class="photo-pick"><img id="photo-preview" alt="" hidden><span class="photo-ph" id="photo-ph">{% icon "camera" "lg" %}</span>
-            <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" required></div>
+            <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" data-crop="4:5,3:4,1:1" data-crop-title="Фото для анкеты" required></div>
           <p class="hint">JPG, PNG или WEBP до 5 МБ. Лучше фото, где хорошо видно лицо.</p><p class="err" data-err="photo"></p></div>
         <div class="field"><span class="label">Интересы (до 8)</span>
           <div id="interests" class="chips" role="group" aria-label="Интересы"></div>

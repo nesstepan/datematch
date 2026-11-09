@@ -178,6 +178,42 @@ def set_user_active(uid, active):
     get_store().update("users", uid, {"is_active": bool(active)})
 
 
+# ---------- пароли ----------
+def _set_password(uid, new_password):
+    """Новый пароль + «версия пароля»: все старые входы (сессии) после смены перестают работать."""
+    user = get_user(uid)
+    version = int(user.get("pwv", 0)) + 1
+    get_store().update("users", uid, {"password_hash": security.hash_password(new_password), "pwv": version})
+    return version
+
+
+def change_password(uid, current_password, new_password):
+    """Смена своего пароля в личном кабинете. Возвращает новую версию пароля (её надо записать в текущую сессию)."""
+    user = get_user(uid)
+    if not security.verify_password(current_password or "", user["password_hash"]):
+        raise ApiError("Текущий пароль указан неверно", 422, "wrong_current_password",
+                       {"current_password": "Неверный текущий пароль"})
+    try:
+        new_password = validators.clean_password(new_password)
+    except validators._Bad as exc:
+        raise ApiError(str(exc), 422, "validation_error", {"new_password": str(exc)})
+    if new_password == current_password:
+        raise ApiError("Новый пароль совпадает со старым", 422, "validation_error",
+                       {"new_password": "Придумайте пароль, которого раньше не было"})
+    return _set_password(uid, new_password)
+
+
+def admin_set_password(target_uid, new_password):
+    """Администратор задаёт пароль любому пользователю (например, если тот его забыл)."""
+    if not get_user(target_uid):
+        raise ApiError("Пользователь не найден", 404, "not_found")
+    try:
+        new_password = validators.clean_password(new_password)
+    except validators._Bad as exc:
+        raise ApiError(str(exc), 422, "validation_error", {"password": str(exc)})
+    _set_password(target_uid, new_password)
+
+
 def update_settings(uid, body):
     patch = validators.validate_settings(body)
     if patch:
@@ -354,8 +390,36 @@ def list_messages(mid, uid, since=None, with_deleted=False, match=None):
 PREVIEW = {"image": "Фото", "gif": "GIF", "video": "Видео", "voice": "Голосовое сообщение"}
 
 
+# Побочные эффекты (уведомление, счётчики достижений) не нужны, чтобы показать сообщение. Их выполняем уже после
+# ответа браузеру: так отправка быстрее. На сервере включается в api.py; в тестах и в режиме «в памяти» всё синхронно.
+ASYNC_SIDE_EFFECTS = False
+
+
+def _after_response(fn, *args, **kwargs):
+    if not ASYNC_SIDE_EFFECTS:
+        return fn(*args, **kwargs)
+
+    def run():
+        try:
+            fn(*args, **kwargs)
+        except Exception:  # побочный эффект не должен ронять сервер; сообщение уже сохранено
+            import logging
+            logging.getLogger(__name__).exception("Ошибка в фоновой задаче")
+    import threading
+    threading.Thread(target=run, daemon=True).start()
+
+
+def _message_side_effects(mid, uid, other_id, msg_id, preview, counters):
+    me = get_user(uid)
+    features.notify(other_id, "message", f"{me['name']}: {preview[:80]}", key=msg_id, from_uid=uid,
+                    from_name=me["name"], from_photo=photo_url(me), match_id=mid)
+    features.bump(uid, messages_sent=1, **counters)
+    if "gifts_sent" in counters:
+        features.bump(other_id, gifts_received=1)
+
+
 def _store_message(mid, uid, doc, preview, counters):
-    """Общая часть: запись сообщения, обновление пары, уведомление собеседнику, счётчики достижений."""
+    """Сохраняем сообщение и обновляем пару (это единственное, чего ждёт отправитель). Остальное делаем следом."""
     match = get_match_for(mid, uid)
     st = get_store()
     ts = _now()
@@ -364,12 +428,7 @@ def _store_message(mid, uid, doc, preview, counters):
     st.update("matches", mid, {"last_message": preview[:80], "last_message_at": ts, "last_sender": uid,
                                f"typing_{uid}": 0})
     other_id = next(x for x in match["users"] if x != uid)
-    me = get_user(uid)
-    features.notify(other_id, "message", f"{me['name']}: {preview[:80]}", key=msg_id, from_uid=uid,
-                    from_name=me["name"], from_photo=photo_url(me), match_id=mid)
-    features.bump(uid, messages_sent=1, **counters)
-    if "gifts_sent" in counters:
-        features.bump(other_id, gifts_received=1)
+    _after_response(_message_side_effects, mid, uid, other_id, msg_id, preview, counters)
     return _message_view({"id": msg_id, "sender": uid, "created_at": ts, **doc}, uid)
 
 

@@ -132,7 +132,9 @@ window.DMPeople = (function () {
     const file = DM.el("input"); file.type = "file"; file.accept = "image/jpeg,image/png,image/webp,image/gif"; file.hidden = true;
     const pick = DM.el("button", "btn ghost sm"); pick.type = "button"; pick.appendChild(DM.icon("image")); const pickText = document.createTextNode("Добавить фото"); pick.appendChild(pickText);
     pick.addEventListener("click", () => file.click());
-    file.addEventListener("change", () => { pickText.nodeValue = file.files[0] ? "Фото: " + file.files[0].name.slice(0, 18) : "Добавить фото"; });
+    DM.attachCrop(file, { aspects: ["4:5", "1:1", "16:9", "3:4"], title: "Фото для поста", allowOriginal: true, name: "post" });  // до других обработчиков
+    file.addEventListener("change", () => { pickText.nodeValue = file.files[0] ? "Фото выбрано (нажмите, чтобы заменить)" : "Добавить фото"; });
+    file.addEventListener("dm:cleared", () => { pickText.nodeValue = "Добавить фото"; });
     const send = DM.el("button", "btn sm"); send.type = "submit"; send.appendChild(DM.icon("pen")); send.appendChild(document.createTextNode("Опубликовать"));
     const row = DM.el("div", "row"); row.append(pick, send);
     const err = DM.el("p", "err"); err.setAttribute("role", "alert");

@@ -146,12 +146,43 @@
     DM.api("/api/matches/" + mid + "/typing/", { method: "POST" }).catch(() => { /* не критично */ });
   });
 
-  form.addEventListener("submit", async ev => {
+  /* Текст появляется в чате мгновенно (серым, «отправляется…»), а на сервер уходит в фоне. Если связи нет,
+     сообщение не пропадает: рядом появляются кнопки «Повторить» и «Убрать». Порядок отправки сохраняется. */
+  let queue = Promise.resolve();
+  function sendText(text) {
+    const tmp = DM.el("div", "msg mine pending");
+    tmp.appendChild(DM.el("div", "", text));
+    tmp.appendChild(DM.el("time", "", "отправляется…"));
+    placeholder.remove();
+    if (typingEl) box.insertBefore(tmp, typingEl); else box.appendChild(tmp);
+    toBottom(); idle = 0;
+    const job = async () => {
+      tmp.className = "msg mine pending"; tmp.querySelector(".retry")?.remove();
+      try {
+        const { message } = await DM.api(base, { method: "POST", json: { text } });
+        if (seen.has(message.id)) { tmp.remove(); return; }       // опрос уже успел принести это сообщение
+        seen.add(message.id); fill(tmp, message); els.set(message.id, tmp); tmp._m = message;
+        last = Math.max(last, message.created_at); updateTicks();
+      } catch (e) {
+        if (e.status === 404 && (e.message || "").includes("Пара")) { tmp.remove(); return closed(); }
+        tmp.className = "msg mine failed";
+        const r = DM.el("div", "retry", "Не отправлено. "); const again = DM.el("button", "link-btn", "Повторить"), drop = DM.el("button", "link-btn", "Убрать");
+        again.type = drop.type = "button";
+        again.addEventListener("click", () => { queue = queue.then(job); });
+        drop.addEventListener("click", () => tmp.remove());
+        r.append(again, drop); tmp.appendChild(r);
+      }
+    };
+    queue = queue.then(job);
+  }
+
+  form.addEventListener("submit", ev => {
     ev.preventDefault();
     const text = input.value.trim();
     if (!text) return;
     if (text.length > 1000) { DM.toast("Сообщение длиннее 1000 символов", "error"); return; }
-    if (await post({ json: { text } })) input.value = "";
+    input.value = ""; input.focus(); lastTyping = 0;
+    sendText(text);
   });
 
   /* фото, GIF, видео */
@@ -236,7 +267,7 @@
   document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(false); });
   poll(true);
   (async function loop() {  // реже опрашиваем, когда в чате давно тихо (экономим квоту базы)
-    await new Promise(r => setTimeout(r, idle > 20 ? 8000 : 3000));
+    await new Promise(r => setTimeout(r, idle <= 12 ? 1500 : idle <= 40 ? 3000 : 8000));
     await poll(false); loop();
   })();
 })();

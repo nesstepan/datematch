@@ -13,7 +13,7 @@
     <h2>{% icon "user" %} Основное</h2>
     <div class="photo-pick"><img id="photo-preview" src="{{ my_photo }}" alt="Ваше фото">
       <div><label class="btn ghost sm" for="photo">{% icon "camera" %}Сменить фото</label>
-        <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+        <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" data-crop="4:5,3:4,1:1" data-crop-title="Фото для анкеты" hidden>
         <p class="hint">JPG, PNG или WEBP до 5 МБ</p>
         <p class="err" data-err="photo"></p></div></div>
     <div class="grid2">
