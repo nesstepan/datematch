@@ -247,15 +247,23 @@ def messages(request, match_id):
         return services.chat_poll(match_id, uid, since)
     upload = request.FILES.get("file")
     if upload is not None:  # фото / GIF / видео / голосовое
-        if upload.size > 7 * 1024 * 1024:
+        if upload.size > 17 * 1024 * 1024:
             raise ApiError("Файл слишком большой", 422, "validation_error", {"file": "Файл слишком большой"})
         msg = services.send_media(match_id, uid, upload.read(), request.POST.get("kind", ""),
-                                  request.POST.get("duration", 0), request.POST.get("text", ""))
+                                  request.POST.get("duration", 0), request.POST.get("text", ""),
+                                  request.POST.get("reply_to") or None)
         return {"message": msg}, 201
     body = read_json(request)
+    reply_to = body.get("reply_to") or None
     if body.get("gift"):
-        return {"message": services.send_gift(match_id, uid, body["gift"])}, 201
-    return {"message": services.send_message(match_id, uid, body.get("text"))}, 201
+        return {"message": services.send_gift(match_id, uid, body["gift"], reply_to)}, 201
+    return {"message": services.send_message(match_id, uid, body.get("text"), reply_to)}, 201
+
+
+@api_view(["POST", "DELETE"])
+def message_reaction(request, match_id, message_id):
+    kind = None if request.method == "DELETE" else read_json(request).get("kind")
+    return services.react_message(match_id, request.me["id"], message_id, kind)
 
 
 @api_view(["DELETE"])

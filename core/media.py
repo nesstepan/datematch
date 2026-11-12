@@ -16,7 +16,8 @@ from .store import get_store
 
 CHUNK = 700_000
 MB = 1024 * 1024
-LIMITS = {"image": 5 * MB, "gif": 3 * MB, "video": 6 * MB, "voice": 2 * MB}
+LIMITS = {"image": 5 * MB, "gif": 3 * MB, "video": 15 * MB, "voice": 2 * MB}
+PROFILE_VIDEO_MAX = 6 * MB   # видео в анкете осталось таким же небольшим, как раньше
 KIND_RU = {"image": "Фото", "gif": "GIF", "video": "Видео", "voice": "Голосовое"}
 
 _cache = OrderedDict()  # media_id -> bytes (файлы неизменны, поэтому кэш безопасен)
@@ -106,8 +107,8 @@ def classify_profile_video(raw):
     kind, ctype = sniff(raw or b"")
     if kind != "video":
         raise _bad("Нужно видео в формате MP4, WEBM или MOV", "video")
-    if len(raw) > LIMITS["video"]:
-        raise _bad(f"Видео больше {LIMITS['video'] // MB} МБ — сожмите или обрежьте его", "video")
+    if len(raw) > PROFILE_VIDEO_MAX:
+        raise _bad(f"Видео больше {PROFILE_VIDEO_MAX // MB} МБ — сожмите или обрежьте его", "video")
     return ctype
 
 

@@ -27,15 +27,21 @@
   </header>
   <div id="messages" class="messages" aria-live="polite"></div>
   <div class="gift-panel" id="gift-panel" hidden></div>
+  <div class="reply-bar" id="reply-bar" hidden>
+    {% icon "reply" %}
+    <div class="rb-text"><strong id="rb-name"></strong><span id="rb-text"></span></div>
+    <button class="icon-btn" id="rb-close" type="button" aria-label="Отменить ответ">{% icon "x" %}</button>
+  </div>
   <form id="send-form" class="composer" autocomplete="off">
     <label class="sr" for="text">Сообщение</label>
     <button class="icon-btn" id="attach-btn" type="button" aria-label="Прикрепить фото, видео или GIF" title="Фото, видео, GIF">{% icon "paperclip" %}</button>
-    <input id="file" type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" hidden>
+    <input id="file" type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/*" hidden>
     <button class="icon-btn" id="gift-btn" type="button" aria-label="Подарок" title="Виртуальный подарок">{% icon "gift" %}</button>
     <input id="text" name="text" maxlength="1000" placeholder="Сообщение" required>
     <div class="rec-info" id="rec-info"><span class="rec-dot"></span><span id="rec-time">0:00</span>
       <button class="link-btn" id="rec-cancel" type="button">Отмена</button></div>
     <button class="icon-btn" id="mic-btn" type="button" aria-label="Голосовое сообщение" title="Записать голосовое (нажмите ещё раз, чтобы отправить)">{% icon "mic" "when-idle" %}{% icon "stop" "when-rec" %}</button>
+    <button class="icon-btn" id="vid-btn" type="button" aria-label="Записать видеосообщение" title="Видеосообщение (до 45 секунд)">{% icon "video" %}</button>
     <button class="btn send" type="submit" id="send-btn" aria-label="Отправить" title="Отправить">{% icon "send" %}</button>
   </form>
 </section>

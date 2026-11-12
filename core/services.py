@@ -371,7 +371,61 @@ def _message_view(m, uid):
             "media_url": f"/media/{m['media_id']}/" if m.get("media_id") and not deleted else "",
             "duration": m.get("duration", 0),
             "gift": {"id": m["gift"], "icon": gift[0], "title": gift[1]} if gift and not deleted else None,
+            "reply_to": _reply_view(m.get("reply_to"), uid) if not deleted else None,
             "created_at": m["created_at"]}
+
+
+# ---------- реакции на сообщения ----------
+REACTIONS = ("heart", "like", "fire", "laugh", "sad", "wow")   # имена векторных иконок: сердце, палец вверх, огонёк, смех, грусть, удивление
+MAX_REACTED = 300                                               # сколько сообщений с реакциями помним в одной паре
+
+
+def _reaction_view(entry, uid):
+    """entry: {uid: вид_реакции}. -> [{kind, count, mine}] в порядке набора REACTIONS."""
+    if not entry:
+        return []
+    out = []
+    for kind in REACTIONS:
+        who = [u for u, k in entry.items() if k == kind]
+        if who:
+            out.append({"kind": kind, "count": len(who), "mine": uid in who})
+    return out
+
+
+def react_message(mid, uid, msg_id, kind):
+    """Поставить реакцию на сообщение (одна реакция от человека; другая заменяет прежнюю). Пустое значение снимает реакцию."""
+    match = get_match_for(mid, uid)
+    if kind not in (None, "") and kind not in REACTIONS:
+        raise ApiError("Такой реакции нет", 422, "validation_error", {"kind": "Выберите реакцию из списка"})
+    st = get_store()
+    msg = st.get(f"matches/{mid}/messages", msg_id)
+    if not msg or msg.get("deleted"):
+        raise ApiError("Сообщение не найдено", 404, "not_found")
+    rmap = {k: dict(v) for k, v in (match.get("reactions") or {}).items()}
+    entry = rmap.get(msg_id, {})
+    if kind:
+        entry[uid] = kind
+    else:
+        entry.pop(uid, None)
+    if entry:
+        rmap[msg_id] = entry
+    else:
+        rmap.pop(msg_id, None)
+    if len(rmap) > MAX_REACTED:  # храним не больше N сообщений: сначала выбрасываем удалённые, потом самые старые
+        for k in [k for k in rmap if k in set(match.get("deleted_ids", []))] + list(rmap):
+            if len(rmap) <= MAX_REACTED:
+                break
+            if k != msg_id:
+                rmap.pop(k, None)
+    st.update("matches", mid, {"reactions": rmap})
+    return {"message_id": msg_id, "reactions": _reaction_view(rmap.get(msg_id), uid)}
+
+
+def _reply_view(r, uid):
+    """Цитата, на которую отвечает сообщение. Автор цитаты показывается как «вы» или «собеседник»."""
+    if not r:
+        return None
+    return {"id": r["id"], "mine": r.get("sender") == uid, "type": r.get("type", "text"), "text": r.get("text", "")}
 
 
 def list_messages(mid, uid, since=None, with_deleted=False, match=None):
@@ -384,6 +438,14 @@ def list_messages(mid, uid, since=None, with_deleted=False, match=None):
     else:
         msgs = st.query(path, [("created_at", ">", since)], order_by="created_at", limit=200)
     views = [_message_view(m, uid) for m in msgs]
+    gone = set(match.get("deleted_ids", []))
+    rmap = match.get("reactions") or {}
+    for v in views:
+        v["reactions"] = [] if v.get("deleted") else _reaction_view(rmap.get(v["id"]), uid)
+    for v in views:  # текст удалённого сообщения не должен «просвечивать» в цитате
+        r = v.get("reply_to")
+        if r and r["id"] in gone:
+            v["reply_to"] = {**r, "text": "", "deleted": True}
     return (views, match.get("deleted_ids", [])) if with_deleted else views
 
 
@@ -418,10 +480,31 @@ def _message_side_effects(mid, uid, other_id, msg_id, preview, counters):
         features.bump(other_id, gifts_received=1)
 
 
-def _store_message(mid, uid, doc, preview, counters):
+def _reply_snapshot(mid, reply_to_id):
+    """Запоминаем кусочек исходного сообщения, чтобы цитату можно было показать, даже если оно давно промотано.
+    Отвечать можно на любое существующее и не удалённое сообщение этой пары."""
+    if not reply_to_id:
+        return None
+    if not isinstance(reply_to_id, str) or len(reply_to_id) > 64:
+        raise ApiError("Нельзя ответить на это сообщение", 422, "validation_error", {"reply_to": "Сообщение не найдено"})
+    orig = get_store().get(f"matches/{mid}/messages", reply_to_id)
+    if not orig:
+        raise ApiError("Исходное сообщение не найдено", 422, "validation_error", {"reply_to": "Сообщение не найдено"})
+    if orig.get("deleted"):
+        raise ApiError("Нельзя ответить на удалённое сообщение", 422, "validation_error", {"reply_to": "Сообщение удалено"})
+    gift = features.GIFTS.get(orig.get("gift", ""))
+    kind = orig.get("type", "text")
+    text = orig.get("text") or (f"Подарок: {gift[1]}" if gift else PREVIEW.get(kind, ""))
+    return {"id": reply_to_id, "sender": orig["sender"], "type": kind, "text": text[:140]}
+
+
+def _store_message(mid, uid, doc, preview, counters, reply_to=None):
     """Сохраняем сообщение и обновляем пару (это единственное, чего ждёт отправитель). Остальное делаем следом."""
     match = get_match_for(mid, uid)
     st = get_store()
+    snapshot = _reply_snapshot(mid, reply_to)
+    if snapshot:
+        doc = {**doc, "reply_to": snapshot}
     ts = _now()
     msg_id = st.new_id()
     st.set(f"matches/{mid}/messages", msg_id, {"sender": uid, "created_at": ts, **doc})
@@ -432,24 +515,25 @@ def _store_message(mid, uid, doc, preview, counters):
     return _message_view({"id": msg_id, "sender": uid, "created_at": ts, **doc}, uid)
 
 
-def send_message(mid, uid, raw_text):
+def send_message(mid, uid, raw_text, reply_to=None):
     try:
         text = validators.clean_message(raw_text)
     except validators._Bad as exc:
         raise ApiError(str(exc), 422, "validation_error", {"text": str(exc)})
-    return _store_message(mid, uid, {"type": "text", "text": text}, text, {})
+    return _store_message(mid, uid, {"type": "text", "text": text}, text, {}, reply_to)
 
 
-def send_gift(mid, uid, gift_id):
+def send_gift(mid, uid, gift_id, reply_to=None):
     gift = features.GIFTS.get(gift_id)
     if not gift:
         raise ApiError("Такого подарка нет", 422, "validation_error", {"gift": "Выберите подарок из списка"})
     return _store_message(mid, uid, {"type": "gift", "gift": gift_id, "text": ""},
-                          f"{gift[0]} Подарок: {gift[1]}", {"gifts_sent": 1})
+                          f"{gift[0]} Подарок: {gift[1]}", {"gifts_sent": 1}, reply_to)
 
 
-def send_media(mid, uid, raw, hint="", duration=0, caption=""):
+def send_media(mid, uid, raw, hint="", duration=0, caption="", reply_to=None):
     get_match_for(mid, uid)  # не принимаем файлы для чужих пар
+    _reply_snapshot(mid, reply_to)  # проверяем ответ заранее, до сохранения файла
     kind, ctype, data = media.classify_chat(raw, hint)
     try:
         caption = validators.clean_message(caption) if (caption or "").strip() else ""
@@ -459,7 +543,7 @@ def send_media(mid, uid, raw, hint="", duration=0, caption=""):
     counters = {"voice_sent": 1} if kind == "voice" else {"media_sent": 1}
     doc = {"type": kind, "text": caption, "media_id": media_id,
            "duration": validators.clean_duration(duration) if kind == "voice" else 0}
-    return _store_message(mid, uid, doc, caption or PREVIEW[kind], counters)
+    return _store_message(mid, uid, doc, caption or PREVIEW[kind], counters, reply_to)
 
 
 def delete_message(mid, uid, msg_id):
@@ -479,6 +563,8 @@ def delete_message(mid, uid, msg_id):
     other_id = next(x for x in match["users"] if x != uid)
     features.drop_notification(other_id, "message", msg_id)
     patch = {"deleted_ids": (match.get("deleted_ids", []) + [msg_id])[-100:]}
+    if msg_id in (match.get("reactions") or {}):
+        patch["reactions"] = {k: v for k, v in match["reactions"].items() if k != msg_id}
     if match.get("last_message_at") == msg["created_at"]:
         patch["last_message"] = "Сообщение удалено"
     st.update("matches", mid, patch)
@@ -851,7 +937,9 @@ def chat_poll(mid, uid, since=None):
     if match.get("last_sender") not in (None, uid) and match.get(f"read_at_{uid}", 0) < match.get("last_message_at", 0):
         st.update("matches", mid, {f"read_at_{uid}": now, f"delivered_at_{uid}": now})  # собеседнику: «прочитано»
     read_at = match.get(f"read_at_{other_id}", 0)
-    return {"messages": views, "deleted": deleted,
+    gone = set(deleted)
+    reactions = {k: _reaction_view(v, uid) for k, v in (match.get("reactions") or {}).items() if k not in gone}
+    return {"messages": views, "deleted": deleted, "reactions": reactions,
             "receipts": {"read_at": read_at, "delivered_at": max(match.get(f"delivered_at_{other_id}", 0), read_at)},
             "typing": now - match.get(f"typing_{other_id}", 0) < 6,
             "other": presence(other) if other else {"online": False, "last_seen": None}}

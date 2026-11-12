@@ -79,7 +79,12 @@
     try { localStorage.setItem("dm-theme", next); } catch (e) { /* приватный режим */ }
   });
 
-  window.DM = { api, ApiError, toast, showErrors, el, icon };
+  /* Заменяет содержимое элемента иконкой и необязательным текстом: DM.setIcon(button, "send", "Отправить") */
+  function setIcon(node, name, text, extra) {
+    node.textContent = ""; node.appendChild(icon(name, extra));
+    if (text) node.appendChild(document.createTextNode(text));
+  }
+  window.DM = { api, ApiError, toast, showErrors, el, icon, setIcon };
 })();
 
 /* ---- общие помощники для новых страниц ---- */

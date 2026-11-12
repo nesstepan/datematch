@@ -30,7 +30,7 @@
   </form>
   <div id="deck" class="deck" aria-live="polite"></div>
   <div id="empty" class="empty" hidden>
-    {% art "cupid" "empty-art" %}
+    <img class="empty-hands" src="{% static 'img/hands.png' %}" width="1540" height="486" alt="Две руки тянутся друг к другу">
     <h2>Анкеты закончились</h2>
     <p class="muted">Загляните позже: новые люди появляются каждый день. Можно также ослабить фильтры.</p>
     <button class="btn" id="reload" type="button">{% icon "refresh" %}Проверить ещё раз</button>

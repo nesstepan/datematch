@@ -51,6 +51,7 @@ urlpatterns = [
     path("api/matches/", api.matches),
     path("api/matches/<str:match_id>/", api.match_detail),
     path("api/matches/<str:match_id>/messages/", api.messages),
+    path("api/matches/<str:match_id>/messages/<str:message_id>/reaction/", api.message_reaction),
     path("api/matches/<str:match_id>/messages/<str:message_id>/", api.message_detail),
     path("api/matches/<str:match_id>/typing/", api.typing),
     path("api/matches/<str:match_id>/signals/", api.signals),
